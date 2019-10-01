@@ -24,12 +24,18 @@ class DataPipeline:
 
         if conds == 'all':
             self.conds = ['ON', 'OFF']
+        else:
+            self.conds = conds
 
         if tasks == 'all':
             self.tasks = ['rest', 'hld', 'dd', 'tap']
+        else:
+            self.tasks = tasks
 
         if dev == 'all':
             self.dev = ['ACC', 'GYRO']
+        else:
+            self.dev = dev
 
     def generate_subjlist(self):
         """imports the pseudonyms of the subjects to be processed in order to later read the data accordingly"""
@@ -90,7 +96,7 @@ class DataPipeline:
         dataframe = pds.read_table(filename, header=None, sep='\s+')
 
         if self.scaling is True:
-            return preprocessing.normalize(preprocessing.scale(dataframe.values))
+            return preprocessing.scale(preprocessing.normalize(dataframe.values))
         else:
             return preprocessing.normalize(dataframe.values)
 
@@ -115,11 +121,13 @@ class Categorize:
         recordings and assigns them as test data; the output are two different datasets with all available data """
 
         trainingON_idx = np.random.randint(datON.shape[0], size=int(round(datON.shape[0] * ratio)))
-        testON_idx = np.random.randint(datON.shape[0], size=int(round(datON.shape[0] * (1 - ratio))))
+        #testON_idx = np.random.randint(datON.shape[0], size=int(round(datON.shape[0] * (1 - ratio))))
+        testON_idx = np.setdiff1d(np.arange(datON.shape[0]), trainingON_idx)
         smplsONtrain, smplsONtest = datON[trainingON_idx, :, :], datON[testON_idx, :, :]
 
         trainingOFF_idx = np.random.randint(datOFF.shape[0], size=int(round(datOFF.shape[0] * ratio)))
-        testOFF_idx = np.random.randint(datOFF.shape[0], size=int(round(datOFF.shape[0] * (1 - ratio))))
+        #testOFF_idx = np.random.randint(datOFF.shape[0], size=int(round(datOFF.shape[0] * (1 - ratio))))
+        testOFF_idx = np.setdiff1d(np.arange(datOFF.shape[0]), trainingOFF_idx)
         smplsOFFtrain, smplsOFFtest = datOFF[trainingOFF_idx, :, :], datOFF[testOFF_idx, :, :]
 
         return smplsONtrain, smplsONtest, smplsOFFtrain, smplsOFFtest
