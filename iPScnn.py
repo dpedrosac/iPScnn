@@ -24,7 +24,9 @@ reload(cnn.hyperparameter_scan_cnn)
 # loads and preprocesses data as needed
 datobj = preprocess.dataworks.DataPipeline('', 'all', 'all', 'all',ignbad=True)
 datobj.generate_subjlist()
-datON, datOFF = datobj.load_all()
+datON, datOFF = datobj.load_all(window = 20)
+
+print(datON.shape)
 
 # start categorising data in order to prepare the cnn model training/estimation
 catobj = preprocess.dataworks.Categorize()

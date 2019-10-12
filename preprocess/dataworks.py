@@ -58,7 +58,7 @@ class DataPipeline:
         else:
             self.subjlist = frame_name.pseud
 
-    def load_all(self):
+    def load_all(self, window = False):
         """loads all available data for the subjects in the list which was imported via (importXLS); At the end, there
         should be two files with a trial x time x sensor arrangement. The latter may include only ACC (size = 3),
         ACC+GYRO (size = 6) or ACC+GYRO+EMG (size=14), or any other combination"""
@@ -92,6 +92,22 @@ class DataPipeline:
                 loaded_on = np.stack(loaded_temp, axis=0)
             else:
                 loaded_off = np.stack(loaded_temp, axis=0)
+
+        if window != False:
+            # chop available data into time window pieces thus creating more samples
+            # TODO:
+            #   - implement sanity/type check for window values
+            #   - implement overlap option for window
+
+            windowed_on  = loaded_on [:, 0:window, :]
+            windowed_off = loaded_off[:, 0:window, :]
+
+            for n in range(window * 2, int(np.floor(loaded_on.shape[1] / window) * window) + 1, window):
+                windowed_on  = np.append(windowed_on , loaded_on [:, (n - window):n, :], 0)
+                windowed_off = np.append(windowed_off, loaded_off[:, (n - window):n, :], 0)
+
+            loaded_on  = windowed_on
+            loaded_off = windowed_off
 
         return loaded_on, loaded_off
 
