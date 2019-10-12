@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# TESTfsdlkj
+# TESTfsdlkjkkk
 
 
 import preprocess.dataworks
@@ -22,8 +22,7 @@ reload(cnn.estimate_cnn)
 reload(cnn.hyperparameter_scan_cnn)
 
 # loads and preprocesses data as needed
-filepath = '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm'
-datobj = preprocess.dataworks.DataPipeline(filepath, 'all', 'all', 'all',ignbad=True)
+datobj = preprocess.dataworks.DataPipeline('', 'all', 'all', 'all',ignbad=True)
 datobj.generate_subjlist()
 datON, datOFF = datobj.load_all()
 

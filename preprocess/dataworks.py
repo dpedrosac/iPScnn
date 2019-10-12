@@ -6,6 +6,7 @@ import glob
 import pandas as pds
 import numpy as np
 import os
+import getpass
 import matplotlib.pyplot as plt
 
 from keras.utils import to_categorical
@@ -18,7 +19,10 @@ class DataPipeline:
 
         # define the standard path, conditions, tasks and devices whenever 'all is selected'
         if fpath == '':
-            self.wdir = '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm'
+            if getpass.getuser() == 'urs':
+                self.wdir = '/home/urs/sync/projects/autostim'
+            else:
+                self.wdir = '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm'
         else:
             self.wdir = fpath
 
@@ -40,7 +44,10 @@ class DataPipeline:
     def generate_subjlist(self):
         """imports the pseudonyms of the subjects to be processed in order to later read the data accordingly"""
         os.chdir(self.wdir)
-        filename = os.path.join(self.wdir + str("/patientenliste_onoff.xlsx"))
+        if getpass.getuser() == 'urs':
+            filename = os.path.join(self.wdir + str("/data/patientenliste_onoff.xlsx"))
+        else:
+            filename = os.path.join(self.wdir + str("/patientenliste_onoff.xlsx"))
         # frame_name = pds.DataFrame()
         frame_name = pds.read_excel(filename,
                                     sheet_name='working')
@@ -55,8 +62,10 @@ class DataPipeline:
         """loads all available data for the subjects in the list which was imported via (importXLS); At the end, there
         should be two files with a trial x time x sensor arrangement. The latter may include only ACC (size = 3),
         ACC+GYRO (size = 6) or ACC+GYRO+EMG (size=14), or any other combination"""
-
-        self.datpath = self.wdir + "/analyses/csvdata/nopca/"
+        if getpass.getuser() == 'urs':
+            self.datpath = self.wdir + "/data/csvdata/nopca/"
+        else:
+            self.datpath = self.wdir + "/analyses/csvdata/nopca/"
         loaded_on = list()
         loaded_off = list()
 
