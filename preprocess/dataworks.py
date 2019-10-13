@@ -121,9 +121,9 @@ class DataPipeline:
         if not ((type(winsize) == type(0)) and (type(step) == type(0))):
             raise Exception("Size of windows (winsize) and step must be integers.")
         if step > winsize:
-            raise Exception("**ERROR** step must not be larger than winSize.")
+            raise Exception("Steps may never be larger than winSize.")
         if winsize > len(seq):
-            raise Exception("**ERROR** winSize must not be larger than sequence length.")
+            raise Exception("winsize must not be larger than sequence length.")
 
         # Pre-compute number of chunks to emit
         numchunks = ((len(seq)-winsize)/step)+1
