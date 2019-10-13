@@ -94,4 +94,3 @@ else:
             scores.append(score)
         f_scores.append(scores)
     k_scores.append(f_scores)
-

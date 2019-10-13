@@ -32,7 +32,7 @@ class DataPipeline:
             self.conds = conds
 
         if tasks == 'all':
-            self.tasks = ['rest', 'hld', 'dd', 'tap']
+            self.tasks = ['rst', 'hld', 'dd', 'tap']
         else:
             self.tasks = tasks
 
@@ -110,6 +110,28 @@ class DataPipeline:
             loaded_off = windowed_off
 
         return loaded_on, loaded_off
+
+    def sliding_window(seq,winsize,step=1):
+        """ Returns generator iterating through entire input."""
+
+        # Verify the inputs
+        try: it = iter(seq)
+        except TypeError:
+            raise Exception("Please make sure input is iterable.")
+        if not ((type(winsize) == type(0)) and (type(step) == type(0))):
+            raise Exception("Size of windows (winsize) and step must be integers.")
+        if step > winsize:
+            raise Exception("**ERROR** step must not be larger than winSize.")
+        if winsize > len(seq):
+            raise Exception("**ERROR** winSize must not be larger than sequence length.")
+
+        # Pre-compute number of chunks to emit
+        numchunks = ((len(seq)-winsize)/step)+1
+
+        # Generare chunks of data
+        for i in range(0,numchunks*step,step):
+            yield seq[i:i+winsize]
+
 
     def load_file(self, filename):
         """ helper function that reads data and returns the values into a dataframe; there are two options:
