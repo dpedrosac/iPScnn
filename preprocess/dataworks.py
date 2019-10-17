@@ -8,6 +8,7 @@ import numpy as np
 import os
 import getpass
 import matplotlib.pyplot as plt
+import scipy
 
 from keras.utils import to_categorical
 
@@ -37,7 +38,7 @@ class DataPipeline:
             self.tasks = tasks
 
         if dev == 'all':
-            self.dev = ['ACC', 'GYRO']
+            self.dev = ['ACC', 'GYRO','EMG']
         else:
             self.dev = dev
 
@@ -74,19 +75,43 @@ class DataPipeline:
             loaded_temp = list()
             for t in self.tasks:
                 for name in self.subjlist:
-                    list_files1 = self.file_browser(str(name + "_" + t + "_" + c + "_" + self.dev[0]))
-                    list_files2 = self.file_browser(str(name + "_" + t + "_" + c + "_" + self.dev[1]))
+                    list_files_acc  = sorted(self.file_browser(str(name + "_" + t + "_" + c + "_ACC" )))
+                    list_files_gyro = sorted(self.file_browser(str(name + "_" + t + "_" + c + "_GYRO")))
+                    list_files_emg  = sorted(self.file_browser(str(name + "_" + t + "_" + c + "_EMG" )))
 
-                    for f, g in zip(sorted(list_files1), sorted(list_files2)):
-                        datimu = list()
-                        dattemp1 = self.load_file(os.path.join(self.datpath, f))
-                        datimu.append(dattemp1)
+                    for fix in range(len(list_files_acc)):
+                        datimu    = list()
+                        datlength = None
 
-                        dattemp2 = self.load_file(os.path.join(self.datpath, g))
-                        datimu.append(dattemp2)
+                        if 'EMG' in self.dev:
+                            dattemp = self.load_file(os.path.join(self.datpath, list_files_emg[fix]))
+                            datimu.append(dattemp)
+                            datlength = dattemp.shape[0]
+
+                        if 'ACC' in self.dev:
+                            dattemp = self.load_file(os.path.join(self.datpath, list_files_acc[fix]))
+
+                            if datlength != None:
+                                # interpolate data if emg is present as emg is longer.
+                                # TODO should be implemented as a function because it's used again below
+                                x = np.arange(0, dattemp.shape[0])
+                                fit = scipy.interpolate.interp1d(x, dattemp, axis=0)
+                                dattemp = fit(np.linspace(0, dattemp.shape[0] - 1, datlength))
+
+                            datimu.append(dattemp)
+
+                        if 'GYRO' in self.dev:
+                            dattemp = self.load_file(os.path.join(self.datpath, list_files_gyro[fix]))
+
+                            if datlength != None:
+                                x = np.arange(0, dattemp.shape[0])
+                                fit = scipy.interpolate.interp1d(x, dattemp, axis=0)
+                                dattemp = fit(np.linspace(0, dattemp.shape[0] - 1, datlength))
+
+                            datimu.append(dattemp)
 
                         loaded_temp.append(np.hstack(datimu))
-                        del datimu, dattemp1, dattemp2
+                        del datimu, dattemp, datlength, fit, x
 
             if c == 'ON':
                 loaded_on = np.stack(loaded_temp, axis=0)
