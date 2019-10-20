@@ -8,6 +8,7 @@ import numpy as np
 import os
 import getpass
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 import scipy
 
 from keras.utils import to_categorical
@@ -38,7 +39,7 @@ class DataPipeline:
             self.tasks = tasks
 
         if dev == 'all':
-            self.dev = ['ACC', 'GYRO','EMG']
+            self.dev = ['ACC', 'GYRO']
         else:
             self.dev = dev
 
@@ -111,7 +112,8 @@ class DataPipeline:
                             datimu.append(dattemp)
 
                         loaded_temp.append(np.hstack(datimu))
-                        del datimu, dattemp, datlength, fit, x
+                        # doesnt't work, as apparently only needed when EMG data is processed?!?
+                        #del datimu, dattemp, datlength, fit, x
 
             if c == 'ON':
                 loaded_on = np.stack(loaded_temp, axis=0)
@@ -213,11 +215,3 @@ class Categorize:
         datAll = np.concatenate([X, Y])
 
         return datAll, cats
-
-
-# TODO At this point, one should think about a series of different plotting possibilities aiming at providing
-#  control/sanity checks for the data reading and processing
-
-# class PlotData:
-#    def __init__(self):
-#        pass
