@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
 import preprocess.dataworks
 import cnn.estimate_cnn
 import cnn.hyperparameter_scan_cnn
@@ -15,6 +16,8 @@ import talos as ta
 from talos.utils import lr_normalizer
 from talos.metrics.keras_metrics import f1score
 from keras.layers import Flatten, Conv1D
+import getpass
+import pandas as pds
 
 reload(cnn.estimate_cnn)
 reload(cnn.hyperparameter_scan_cnn)
@@ -22,7 +25,31 @@ reload(cnn.hyperparameter_scan_cnn)
 # loads and preprocesses data as needed
 datobj = preprocess.dataworks.DataPipeline('', 'all', 'all', 'all',ignbad=True)
 datobj.generate_subjlist()
-datON, datOFF, detailsON, detailsOFF = datobj.load_all(window = False)
+
+if getpass.getuser() == 'urs':
+    wdir = '/home/urs/sync/projects/autostim'
+else:
+    wdir = '/media/storage/iPScnn'
+
+# the next fdew lines load the data if already extracted ot extract the data if not available.
+if not os.path.isfile(os.path.join(wdir+"/data/dataON_ACCx.csv")):
+    datON, datOFF, detailsON, detailsOFF = datobj.load_all(window=False)
+
+    list_ch = ['ACCx', 'ACCy', 'ACCz', 'GYRx', 'GYRy', 'GYRz']
+    ## TODO so far it only works when all data is entered. Tow possible solutions are feasible 1) saving channel data
+    # into the matrix in dataworks, or 2) extracting  all data and later subselecting the channels of interest (my favorite!!)
+    for idx, n in enumerate(list_ch):
+        np.savetxt(os.path.join(wdir +"/data/dataON_" + list_ch[idx] + ".csv"), datON[:,:,idx], delimiter=";")
+        np.savetxt(os.path.join(wdir + "/data/dataOFF_" + list_ch[idx] + ".csv"), datOFF[:, :, idx], delimiter=";")
+
+    detailsON.to_csv(os.path.join(wdir +"/data/detailsON.csv"), mode='w', header=True)
+    detailsOFF.to_csv(os.path.join(wdir +"/data/detailsOFF.csv"), mode='w', header=True)
+
+else:
+    datON = pds.read_csv(os.path.join(wdir+"/data/dataON.csv"))
+    datOFF = pds.read_csv(os.path.join(wdir +"data/dataOFF.csv"))
+    detailsON = pds.read_csv(os.path.join(wdir +"data/detailsON.csv"))
+    detailsON = pds.read_csv(os.path.join(wdir +"data/detailsOFF.csv"))
 
 print(datON.shape)
 
