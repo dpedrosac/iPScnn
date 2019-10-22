@@ -22,7 +22,7 @@ reload(cnn.hyperparameter_scan_cnn)
 # loads and preprocesses data as needed
 datobj = preprocess.dataworks.DataPipeline('', 'all', 'all', 'all',ignbad=True)
 datobj.generate_subjlist()
-datON, datOFF = datobj.load_all(window = False)
+datON, datOFF, detailsON, detailsOFF = datobj.load_all(window = False)
 
 print(datON.shape)
 

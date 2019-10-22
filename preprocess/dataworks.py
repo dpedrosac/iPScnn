@@ -13,6 +13,8 @@ from keras.utils import to_categorical
 
 class DataPipeline:
     def __init__(self, fpath, conds, tasks, dev, ignbad):
+        ## TODO: create a separate file in which all settings are stored, so that they may be changed whenever needed
+
         self._ignbad = ignbad   #ignore subjects marked as "bad"
         self.scaling = False     # scales/normalises data to mean = 0 and SD = 1
 
@@ -36,7 +38,7 @@ class DataPipeline:
             self.tasks = tasks
 
         if dev == 'all':
-            self.dev = ['ACC'] #['ACC', 'GYRO']
+            self.dev = ['ACC', 'GYRO']
         else:
             self.dev = dev
 
@@ -48,14 +50,15 @@ class DataPipeline:
         else:
             filename = os.path.join(self.wdir + str("/patientenliste_onoff.xlsx"))
         # frame_name = pds.DataFrame()
-        frame_name = pds.read_excel(filename,
+        self.frame_name = pds.read_excel(filename,
                                     sheet_name='working')
 
         # ignores the data categorised as wrong/bad from the dataset (see patienten_onoff.xls for details)
         if self._ignbad:
-            self.subjlist = frame_name.pseud[frame_name.group == 1]
+            self.subjlist = self.frame_name.pseud[self.frame_name.group == 1]
+            self.idx_list = np.where(self.frame_name['group'] == 1)
         else:
-            self.subjlist = frame_name.pseud
+            self.subjlist = self.frame_name.pseud
 
     def load_all(self, window=False):
         """loads all available data for the subjects in the list which was imported via (importXLS); At the end, there
@@ -64,15 +67,16 @@ class DataPipeline:
         if getpass.getuser() == 'urs':
             self.datpath = self.wdir + "/data/csvdata/nopca/"
         else:
-            self.datpath = self.wdir + "/analyses/csvdata/pca/"
+            self.datpath = self.wdir + "/analyses/csvdata/nopca/"
         loaded_on = list()
         loaded_off = list()
 
         # loop through conditions ('ON', 'OFF'), tasks ('rst', 'hld', 'dd', 'tap') and subjects to get all data
         for c in self.conds:
             loaded_temp = list()
+            details_temp = list()
             for t in self.tasks:
-                for name in self.subjlist:
+                for idx, name in enumerate(self.subjlist):
                     list_files_acc  = sorted(self.file_browser(str(name + "_" + t + "_" + c + "_ACC" )))
                     list_files_gyro = sorted(self.file_browser(str(name + "_" + t + "_" + c + "_GYRO")))
                     list_files_emg  = sorted(self.file_browser(str(name + "_" + t + "_" + c + "_EMG" )))
@@ -107,14 +111,24 @@ class DataPipeline:
                                 dattemp = fit(np.linspace(0, dattemp.shape[0] - 1, datlength))
 
                             datimu.append(dattemp)
+                            details_temp.append([name, c, t, fix+1,
+                                                 self.frame_name['age'][self.idx_list[0][idx]],
+                                                 self.frame_name['gender'][self.idx_list[0][idx]],
+                                                 self.frame_name['updrs_off'][self.idx_list[0][idx]],
+                                                 self.frame_name['updrs_on'][self.idx_list[0][idx]],
+                                                 self.frame_name['updrs_diff'][self.idx_list[0][idx]],
+                                                 self.frame_name['ledd'][self.idx_list[0][idx]]]
+                                                )
 
                         loaded_temp.append(np.hstack(datimu))
                         #del datimu, dattemp, datlength, fit, x # doesnt't work, as apparently only needed when EMG data is processed?!?
 
             if c == 'ON':
                 loaded_on = np.stack(loaded_temp, axis=0)
+                detailsON = details_temp
             else:
                 loaded_off = np.stack(loaded_temp, axis=0)
+                detailsOFF = details_temp
 
         if window != False:
             # chop available data into time window pieces thus creating more samples
@@ -132,7 +146,7 @@ class DataPipeline:
             loaded_on  = windowed_on
             loaded_off = windowed_off
 
-        return loaded_on, loaded_off
+        return loaded_on, loaded_off, detailsON, detailsOFF
 
     def sliding_window(seq,winsize,step=1):
         """ Returns generator iterating through entire input."""
