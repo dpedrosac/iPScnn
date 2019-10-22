@@ -76,10 +76,10 @@ else:
     # start evaluating and estimation cnn models
     cnnobj = cnn.estimate_cnn.ModelDefinition(trainX, trainy, testX, testy)
 
-    repeats = 1
-    n_filter = [32, 64, 128]
+    repeats = 10
+    n_filter = [32, 64]#[32, 64, 128]
     #n_kernel = [7, 9, 11, 13]
-    n_kernel = [50, 25, 10, 5]
+    n_kernel = [25,10]#[50, 25, 10, 5]
     scores = list()
     f_scores = list()
     k_scores = list()

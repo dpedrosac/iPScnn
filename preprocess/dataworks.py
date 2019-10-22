@@ -1,23 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
 import glob
 import pandas as pds
 import numpy as np
 import os
 import getpass
 import matplotlib.pyplot as plt
-import plotly.graph_objects as go
 import scipy
-
 from keras.utils import to_categorical
 
 
 class DataPipeline:
     def __init__(self, fpath, conds, tasks, dev, ignbad):
-        self._ignbad = ignbad
-        self.scaling = True
+        self._ignbad = ignbad   #ignore subjects marked as "bad"
+        self.scaling = False     # scales/normalises data to mean = 0 and SD = 1
 
         # define the standard path, conditions, tasks and devices whenever 'all is selected'
         if fpath == '':
@@ -39,7 +36,7 @@ class DataPipeline:
             self.tasks = tasks
 
         if dev == 'all':
-            self.dev = ['ACC', 'GYRO']
+            self.dev = ['ACC'] #['ACC', 'GYRO']
         else:
             self.dev = dev
 
@@ -60,14 +57,14 @@ class DataPipeline:
         else:
             self.subjlist = frame_name.pseud
 
-    def load_all(self, window = False):
+    def load_all(self, window=False):
         """loads all available data for the subjects in the list which was imported via (importXLS); At the end, there
         should be two files with a trial x time x sensor arrangement. The latter may include only ACC (size = 3),
         ACC+GYRO (size = 6) or ACC+GYRO+EMG (size=14), or any other combination"""
         if getpass.getuser() == 'urs':
             self.datpath = self.wdir + "/data/csvdata/nopca/"
         else:
-            self.datpath = self.wdir + "/analyses/csvdata/nopca/"
+            self.datpath = self.wdir + "/analyses/csvdata/pca/"
         loaded_on = list()
         loaded_off = list()
 
@@ -112,8 +109,7 @@ class DataPipeline:
                             datimu.append(dattemp)
 
                         loaded_temp.append(np.hstack(datimu))
-                        # doesnt't work, as apparently only needed when EMG data is processed?!?
-                        #del datimu, dattemp, datlength, fit, x
+                        #del datimu, dattemp, datlength, fit, x # doesnt't work, as apparently only needed when EMG data is processed?!?
 
             if c == 'ON':
                 loaded_on = np.stack(loaded_temp, axis=0)
@@ -159,7 +155,6 @@ class DataPipeline:
         for i in range(0,numchunks*step,step):
             yield seq[i:i+winsize]
 
-
     def load_file(self, filename):
         """ helper function that reads data and returns the values into a dataframe; there are two options:
         1)  True: Mean = 0 and Std = 1
@@ -169,7 +164,15 @@ class DataPipeline:
         # read data from txt-file as processed via MATLAB
         dataframe = pds.read_table(filename, header=None, sep='\s+')
 
+        #plt.figure()
+        #plt.subplot(121)
+        #plt.plot(dataframe)
+
         if self.scaling is True:
+          #  plt.subplot(122)
+          #  plt.plot(preprocessing.scale(preprocessing.normalize(dataframe.values)))
+          #  plt.show()
+          #  plt.clf()
             return preprocessing.scale(preprocessing.normalize(dataframe.values))
         else:
             return preprocessing.normalize(dataframe.values)
