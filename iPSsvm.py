@@ -7,11 +7,11 @@ import numpy as np
 import pandas as pds
 from tsfresh import extract_features
 
-if False:
+if True:
     # loads and preprocesses data as needed
     datobj = preprocess.dataworks.DataPipeline('', 'all', 'all', 'all',ignbad=True)
     datobj.generate_subjlist()
-    datON, datOFF = datobj.load_all(window = False)
+    datON, datOFF, detON, detOFF = datobj.load_all(window = False)
     catobj = preprocess.dataworks.Categorize()
     smplsONtrain, smplsONtest, smplsOFFtrain, smplsOFFtest = catobj.subsample_data(datON, datOFF, .25)
     trainX, trainy = catobj.create_cat(smplsONtrain, smplsOFFtrain)
