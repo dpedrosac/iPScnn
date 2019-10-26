@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import tsfresh
 import os
 import preprocess.dataworks
 import cnn.estimate_cnn
@@ -23,7 +24,8 @@ reload(cnn.estimate_cnn)
 reload(cnn.hyperparameter_scan_cnn)
 
 # loads and preprocesses data as needed
-datobj = preprocess.dataworks.DataPipeline('', 'all', 'all', 'all',ignbad=True)
+#datobj = preprocess.dataworks.DataPipeline('', 'all', 'all', 'all',ignbad=True) <- older version, may be deleted when settings from config.yaml works
+datobj = preprocess.dataworks.DataPipeline('', '', '')
 datobj.generate_subjlist()
 
 if getpass.getuser() == 'urs':

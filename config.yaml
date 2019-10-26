@@ -1,0 +1,24 @@
+# config file saving all important data
+%YAML 1.1
+---
+- dataworks:
+    dirdat:
+      urs: '/home/urs/sync/projects/autostim'
+      david: '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm'
+    dirpatlist:
+      urs: '/data/patientenliste_onoff.xlsx'
+      david: '/patientenliste_onoff.xlsx'
+    ignbad: true
+    scaling: false
+    conds: 'ON'
+    tasks:
+      - 'rst'
+      - 'hld'
+      - 'dd'
+      - 'tap'
+    dev:
+      - 'ACC'
+      - 'GYRO'
+      - 'EMG'
+
+

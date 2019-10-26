@@ -9,38 +9,46 @@ import getpass
 import matplotlib.pyplot as plt
 import scipy
 from keras.utils import to_categorical
-
+import yaml
 
 class DataPipeline:
-    def __init__(self, fpath, conds, tasks, dev, ignbad):
-        ## TODO: create a separate file in which all settings are stored, so that they may be changed whenever needed
+    def __init__(self, conds, tasks, dev):
 
-        self._ignbad = ignbad   #ignore subjects marked as "bad"
-        self.scaling = False     # scales/normalises data to mean = 0 and SD = 1
+        with open('/media/storage/iPScnn/config.yaml', 'r') as f:
+            d = yaml.load(f.read())
+
+        self._ignbad = d[0]['dataworks']['ignbad']
+        #self._ignbad = ignbad   #ignore subjects marked as "bad"
+        self.scaling = d[0]['dataworks']['ignbad']
+        #self.scaling = False     # scales/normalises data to mean = 0 and SD = 1
 
         # define the standard path, conditions, tasks and devices whenever 'all is selected'
-        if fpath == '':
-            if getpass.getuser() == 'urs':
-                self.wdir = '/home/urs/sync/projects/autostim'
-            else:
-                self.wdir = '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm'
-        else:
-            self.wdir = fpath
+        self.wdir = d[0]['dataworks']['dirdat'][getpass.getuser()]
+        #if fpath == '':
+        #    if getpass.getuser() == 'urs':
+        #        self.wdir = '/home/urs/sync/projects/autostim'
+        #    else:
+        #        self.wdir = '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm'
+        #else:
+        #    self.wdir = fpath
 
-        if conds == 'all':
+        if conds == '':
             self.conds = ['ON', 'OFF']
         else:
-            self.conds = conds
+            self.conds = d[0]['dataworks']['conds']
+            #self.conds = conds
 
-        if tasks == 'all':
+        if tasks == '':
             self.tasks = ['rst', 'hld', 'dd', 'tap']
         else:
-            self.tasks = tasks
+            self.tasks = d[0]['dataworks']['tasks']
+            #self.tasks = tasks
 
-        if dev == 'all':
+        if dev == '':
             self.dev = ['ACC', 'GYRO']
         else:
-            self.dev = dev
+            self.dev = d[0]['dataworks']['dev']
+            #self.dev = dev
 
     def generate_subjlist(self):
         """imports the pseudonyms of the subjects to be processed in order to later read the data accordingly"""
@@ -94,11 +102,7 @@ class DataPipeline:
                             dattemp = self.load_file(os.path.join(self.datpath, list_files_acc[fix]))
 
                             if datlength != None:
-                                # interpolate data if emg is present as emg is longer.
-                                # TODO should be implemented as a function because it's used again below
-                                x = np.arange(0, dattemp.shape[0])
-                                fit = scipy.interpolate.interp1d(x, dattemp, axis=0)
-                                dattemp = fit(np.linspace(0, dattemp.shape[0] - 1, datlength))
+                                dattemp = self.arrange_data(dattemp, datlength)
 
                             datimu.append(dattemp)
 
@@ -152,6 +156,14 @@ class DataPipeline:
 
         return loaded_on, loaded_off, detailsON, detailsOFF
 
+    def arrange_data(self, dattemp, datlength):
+        """helper function that interpolates data to make "EMG" and "IMU" data of same length """
+
+        x = np.arange(0, dattemp.shape[0])
+        fit = scipy.interpolate.interp1d(x, dattemp, axis=0)
+        dattemp = fit(np.linspace(0, dattemp.shape[0] - 1, datlength))
+        return dattemp
+
     def sliding_window(seq,winsize,step=1):
         """ Returns generator iterating through entire input."""
 
@@ -187,6 +199,9 @@ class DataPipeline:
         #plt.plot(dataframe)
 
         if self.scaling is True:
+          ## TODO scaling/normalizing is NOT working. Different (simpler?!?) approach needed to make it work;
+          # implement debug option into dataworks to tidy up the code.
+
           #  plt.subplot(122)
           #  plt.plot(preprocessing.scale(preprocessing.normalize(dataframe.values)))
           #  plt.show()
@@ -216,12 +231,10 @@ class Categorize:
         recordings and assigns them as test data; the output are two different datasets with all available data """
 
         trainingON_idx = np.random.randint(datON.shape[0], size=int(round(datON.shape[0] * ratio)))
-        #testON_idx = np.random.randint(datON.shape[0], size=int(round(datON.shape[0] * (1 - ratio))))
         testON_idx = np.setdiff1d(np.arange(datON.shape[0]), trainingON_idx)
         smplsONtrain, smplsONtest = datON[trainingON_idx, :, :], datON[testON_idx, :, :]
 
         trainingOFF_idx = np.random.randint(datOFF.shape[0], size=int(round(datOFF.shape[0] * ratio)))
-        #testOFF_idx = np.random.randint(datOFF.shape[0], size=int(round(datOFF.shape[0] * (1 - ratio))))
         testOFF_idx = np.setdiff1d(np.arange(datOFF.shape[0]), trainingOFF_idx)
         smplsOFFtrain, smplsOFFtest = datOFF[trainingOFF_idx, :, :], datOFF[testOFF_idx, :, :]
 
