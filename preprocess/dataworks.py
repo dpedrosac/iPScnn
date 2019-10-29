@@ -18,46 +18,43 @@ class DataPipeline:
             d = yaml.load(f.read())
 
         self._ignbad = d[0]['dataworks']['ignbad']
-        #self._ignbad = ignbad   #ignore subjects marked as "bad"
         self.scaling = d[0]['dataworks']['ignbad']
-        #self.scaling = False     # scales/normalises data to mean = 0 and SD = 1
+        self.datpath = d[0]['dataworks']['folders'][getpass.getuser()]['datpath']
+        self.patlist = d[0]['dataworks']['folders'][getpass.getuser()]['patlist']
 
         # define the standard path, conditions, tasks and devices whenever 'all is selected'
-        self.wdir = d[0]['dataworks']['dirdat'][getpass.getuser()]
-        #if fpath == '':
-        #    if getpass.getuser() == 'urs':
-        #        self.wdir = '/home/urs/sync/projects/autostim'
-        #    else:
-        #        self.wdir = '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm'
-        #else:
-        #    self.wdir = fpath
+        self.wdir = d[0]['dataworks']['folders'][getpass.getuser()]['wdir']
 
         if conds == '':
+            self.conds = d[0]['dataworks']['conds']
+        elif conds == 'all':
             self.conds = ['ON', 'OFF']
         else:
-            self.conds = d[0]['dataworks']['conds']
-            #self.conds = conds
+            self.conds = conds
 
         if tasks == '':
+            self.tasks = d[0]['dataworks']['tasks']
+        elif tasks == 'all':
             self.tasks = ['rst', 'hld', 'dd', 'tap']
         else:
-            self.tasks = d[0]['dataworks']['tasks']
-            #self.tasks = tasks
+            self.tasks = tasks
 
         if dev == '':
+            self.dev = d[0]['dataworks']['dev']
+        elif dev == 'all':
             self.dev = ['ACC', 'GYRO']
         else:
-            self.dev = d[0]['dataworks']['dev']
-            #self.dev = dev
+            self.dev = dev
 
     def generate_subjlist(self):
         """imports the pseudonyms of the subjects to be processed in order to later read the data accordingly"""
         os.chdir(self.wdir)
-        if getpass.getuser() == 'urs':
-            filename = os.path.join(self.wdir + str("/data/patientenliste_onoff.xlsx"))
-        else:
-            filename = os.path.join(self.wdir + str("/patientenliste_onoff.xlsx"))
-        # frame_name = pds.DataFrame()
+        filename = self.patlist
+        #if getpass.getuser() == 'urs':
+        #    filename = os.path.join(self.wdir + str("/data/patientenliste_onoff.xlsx"))
+        #else:
+        #    filename = os.path.join(self.wdir + str("/patientenliste_onoff.xlsx"))
+
         self.frame_name = pds.read_excel(filename,
                                     sheet_name='working')
 
@@ -191,6 +188,7 @@ class DataPipeline:
         2)  False: Mean = 0, Std remains """
         from sklearn import preprocessing
 
+        # scaler = preprocessing.StandardScaler()
         # read data from txt-file as processed via MATLAB
         dataframe = pds.read_table(filename, header=None, sep='\s+')
 
@@ -199,14 +197,12 @@ class DataPipeline:
         #plt.plot(dataframe)
 
         if self.scaling is True:
-          ## TODO scaling/normalizing is NOT working. Different (simpler?!?) approach needed to make it work;
-          # implement debug option into dataworks to tidy up the code.
-
-          #  plt.subplot(122)
-          #  plt.plot(preprocessing.scale(preprocessing.normalize(dataframe.values)))
-          #  plt.show()
-          #  plt.clf()
-            return preprocessing.scale(preprocessing.normalize(dataframe.values))
+            #plt.subplot(122)
+            #plt.plot(preprocessing.robust_scale(dataframe.values))
+            #plt.show()
+            #plt.clf()
+            #return preprocessing.scale(preprocessing.normalize(dataframe.values))
+            return preprocessing.robust_scale(dataframe.values)
         else:
             return preprocessing.normalize(dataframe.values)
 

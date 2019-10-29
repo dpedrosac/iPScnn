@@ -2,23 +2,24 @@
 %YAML 1.1
 ---
 - dataworks:
-    dirdat:
-      urs: '/home/urs/sync/projects/autostim'
-      david: '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm'
-    dirpatlist:
-      urs: '/data/patientenliste_onoff.xlsx'
-      david: '/patientenliste_onoff.xlsx'
+    folders:
+          urs:
+            wdir:     '/home/urs/sync/projects/autostim'
+            patlist:  '/data/patientenliste_onoff.xlsx'
+            datpath:  '/home/urs/sync/projects/autostim/data/csvdata/nopca/'
+          david:
+            wdir:     '/media/storage/iPScnn'
+            patlist:  '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm/patientenliste_onoff.xlsx'
+            datpath:  '/media/storage/iPScnn/analyses/csvdata/nopca/'
     ignbad: true
-    scaling: false
-    conds: 'ON'
+    scaling: true
+    conds: ['ON', 'OFF']
     tasks:
-      - 'rst'
       - 'hld'
       - 'dd'
       - 'tap'
     dev:
       - 'ACC'
       - 'GYRO'
-      - 'EMG'
 
 
