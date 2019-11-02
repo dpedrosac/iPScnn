@@ -10,7 +10,7 @@
           david:
             wdir:     '/media/storage/iPScnn'
             patlist:  '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm/patientenliste_onoff.xlsx'
-            datpath:  '/media/storage/iPScnn/analyses/csvdata/nopca/'
+            datpath:  '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm/analyses/csvdata/nopca/'
     ignbad: true
     scaling: true
     conds: ['ON', 'OFF']

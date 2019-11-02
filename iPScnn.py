@@ -84,8 +84,8 @@ if tune_params == False:
         for f in n_filter:
             for r in range(repeats):
                 # score = cnnobj.evaluate_combined_model(trainX, trainy, testX, testy, f, k)
-                #score = cnnobj.evaluate_model(trainX, trainy, testX, testy, f, k)
-                score = cnnobj.evaluate_alt_model(trainX, trainy, testX, testy, f, k)
+                score = cnnobj.evaluate_model(trainX, trainy, testX, testy, f, k)
+                #score = cnnobj.evaluate_alt_model(trainX, trainy, testX, testy, f, k)
 
                 score = score * 100.0
                 print('>F=%d; K=%d; #%d: %.3f' % (f, k, r + 1, score))

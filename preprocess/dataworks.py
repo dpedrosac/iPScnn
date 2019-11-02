@@ -6,7 +6,6 @@ import pandas as pds
 import numpy as np
 import os
 import getpass
-import matplotlib.pyplot as plt
 import scipy
 from keras.utils import to_categorical
 import yaml
@@ -21,6 +20,7 @@ class DataPipeline:
         self.scaling = d[0]['dataworks']['ignbad']
         self.datpath = d[0]['dataworks']['folders'][getpass.getuser()]['datpath']
         self.patlist = d[0]['dataworks']['folders'][getpass.getuser()]['patlist']
+        self.debug = False
 
         # define the standard path, conditions, tasks and devices whenever 'all is selected'
         self.wdir = d[0]['dataworks']['folders'][getpass.getuser()]['wdir']
@@ -69,14 +69,14 @@ class DataPipeline:
         """loads all available data for the subjects in the list which was imported via (importXLS); At the end, there
         should be two files with a trial x time x sensor arrangement. The latter may include only ACC (size = 3),
         ACC+GYRO (size = 6) or ACC+GYRO+EMG (size=14), or any other combination"""
-        if getpass.getuser() == 'urs':
-            self.datpath = self.wdir + "/data/csvdata/nopca/"
-        else:
-            self.datpath = self.wdir + "/analyses/csvdata/nopca/"
+        #if getpass.getuser() == 'urs':
+        #    self.datpath = self.wdir + "/data/csvdata/nopca/"
+        #else:
+        #    self.datpath = self.wdir + "/analyses/csvdata/nopca/"
         loaded_on = list()
         loaded_off = list()
 
-        # loop through conditions ('ON', 'OFF'), tasks ('rst', 'hld', 'dd', 'tap') and subjects to get all data
+        # loop through conditions, tasks and subjects to get all data; for details see (config.yaml)
         for c in self.conds:
             loaded_temp = list()
             details_temp = list()
@@ -188,20 +188,23 @@ class DataPipeline:
         2)  False: Mean = 0, Std remains """
         from sklearn import preprocessing
 
-        # scaler = preprocessing.StandardScaler()
         # read data from txt-file as processed via MATLAB
         dataframe = pds.read_table(filename, header=None, sep='\s+')
 
-        #plt.figure()
-        #plt.subplot(121)
-        #plt.plot(dataframe)
+        # plot only if debug option is set.
+        if self.debug:
+            import matplotlib.pyplot as plt
+            scaler = preprocessing.StandardScaler()
+            plt.figure()
+            plt.subplot(121)
+            plt.plot(dataframe)
 
-        if self.scaling is True:
-            #plt.subplot(122)
-            #plt.plot(preprocessing.robust_scale(dataframe.values))
-            #plt.show()
-            #plt.clf()
-            #return preprocessing.scale(preprocessing.normalize(dataframe.values))
+        if self.scaling:
+            if self.debug:
+                plt.subplot(122)
+                plt.plot(preprocessing.robust_scale(dataframe.values))
+                plt.show()
+                plt.clf()
             return preprocessing.robust_scale(dataframe.values)
         else:
             return preprocessing.normalize(dataframe.values)
