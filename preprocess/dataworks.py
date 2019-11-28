@@ -13,8 +13,15 @@ import yaml
 class DataPipeline:
     def __init__(self, conds, tasks, dev):
 
-        with open('/media/storage/iPScnn/config.yaml', 'r') as f:
-            d = yaml.load(f.read())
+        # load local settings.
+        # TODO ugly because we use a hardcoded path here and call this exact code snippet also in iPScnn.py
+        # This should be dealt with in an own library e.g. "utils.load_settings"
+        if getpass.getuser() == "urs":
+            with open('/home/urs/sync/projects/autostim/analysis/iPScnn/config.yaml', 'r') as f:
+                d = yaml.load(f.read())
+        else:
+            with open('/media/storage/iPScnn/config.yaml', 'r') as f:
+                d = yaml.load(f.read())
 
         self._ignbad = d[0]['dataworks']['ignbad']
         self.scaling = d[0]['dataworks']['ignbad']

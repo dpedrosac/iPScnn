@@ -5,7 +5,7 @@
     folders:
           urs:
             wdir:     '/home/urs/sync/projects/autostim'
-            patlist:  '/data/patientenliste_onoff.xlsx'
+            patlist:  '/home/urs/sync/projects/autostim/data/patientenliste_onoff.xlsx'
             datpath:  '/home/urs/sync/projects/autostim/data/csvdata/nopca/'
           david:
             wdir:     '/media/storage/iPScnn'

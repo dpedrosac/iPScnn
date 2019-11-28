@@ -22,8 +22,12 @@ reload(cnn.hyperparameter_scan_cnn)
 datobj = preprocess.dataworks.DataPipeline('', '', '')
 datobj.generate_subjlist()
 
-with open('/media/storage/iPScnn/config.yaml', 'r') as f:
-    d = yaml.load(f.read())
+if getpass.getuser() == "urs":
+    with open('/home/urs/sync/projects/autostim/analysis/iPScnn/config.yaml', 'r') as f:
+        d = yaml.load(f.read())
+else:
+    with open('/media/storage/iPScnn/config.yaml', 'r') as f:
+        d = yaml.load(f.read())
 
 wdir = d[0]['dataworks']['folders'][getpass.getuser()]['wdir']
 list_ch = ['ACCx', 'ACCy', 'ACCz', 'GYRx', 'GYRy', 'GYRz'] # list of channels to be loaded/extracted and preprocessed
@@ -35,25 +39,25 @@ if not os.path.isfile(os.path.join(wdir+"/data/dataON_ACCx.csv")):
     datON, datOFF, detailsON, detailsOFF = datobj.load_all(window=False)
 
     for idx, n in enumerate(list_ch):
-        np.savetxt(os.path.join(wdir +"/data/dataON_" + list_ch[idx] + ".csv"), datON[:,:,idx], delimiter=";")
+        np.savetxt(os.path.join(wdir + "/data/dataON_"  + list_ch[idx] + ".csv"), datON[ :, :, idx], delimiter=";")
         np.savetxt(os.path.join(wdir + "/data/dataOFF_" + list_ch[idx] + ".csv"), datOFF[:, :, idx], delimiter=";")
 
-    detailsON.to_csv(os.path.join(wdir +"/data/detailsON.csv"), mode='w', header=True)
+    detailsON.to_csv( os.path.join(wdir +"/data/detailsON.csv") , mode='w', header=True)
     detailsOFF.to_csv(os.path.join(wdir +"/data/detailsOFF.csv"), mode='w', header=True)
 
 else:
-    """if datra is stored on HDD, data is only loaded"""
+    """if data is stored on HDD, data is only loaded"""
 
     for idx, n in enumerate(list_ch):
         if idx == 0:
-            datON = pds.read_csv(os.path.join(wdir+"/data/dataON_" +n +".csv"), sep=';')
+            datON  = pds.read_csv(os.path.join(wdir + "/data/dataON_"  + n + ".csv"), sep=';')
             datOFF = pds.read_csv(os.path.join(wdir + "/data/dataOFF_" + n + ".csv"), sep=';')
         else:
-            datON = np.dstack((datON, pds.read_csv(os.path.join(wdir+"/data/dataON_" +n +".csv"), sep=';')))
-            datOFF = np.dstack((datOFF, pds.read_csv(os.path.join(wdir+"/data/dataOFF_" +n +".csv"), sep=';')))
+            datON  = np.dstack((datON , pds.read_csv(os.path.join(wdir + "/data/dataON_"  + n +".csv"), sep=';')))
+            datOFF = np.dstack((datOFF, pds.read_csv(os.path.join(wdir + "/data/dataOFF_" + n +".csv"), sep=';')))
 
-    detailsON = pds.read_csv(os.path.join(wdir +"/data/detailsON.csv"))
-    detailsON = pds.read_csv(os.path.join(wdir +"/data/detailsOFF.csv"))
+    detailsON  = pds.read_csv(os.path.join(wdir + "/data/detailsON.csv" ))
+    detailsOFF = pds.read_csv(os.path.join(wdir + "/data/detailsOFF.csv"))
 
 print(datON.shape)
 
@@ -61,10 +65,10 @@ print(datON.shape)
 # start categorising data in order to prepare the cnn model training/estimation
 catobj = preprocess.dataworks.Categorize()
 smplsONtrain, smplsONtest, smplsOFFtrain, smplsOFFtest = catobj.subsample_data(datON, datOFF, .8)
-# TODO at this point a permutation for e.g. k-fold crossvalidation, or permutation approaches could be included here
+# TODO permutation for e.g. k-fold crossvalidation could be included here
 
 trainX, trainy = catobj.create_cat(smplsONtrain, smplsOFFtrain)
-testX, testy = catobj.create_cat(smplsONtest, smplsOFFtest)
+testX , testy  = catobj.create_cat(smplsONtest  , smplsOFFtest)
 
 tune_params = False # tuning the hyperparameters doesn't work so far for unknon reasons. Supposedly, 3D data is not recognised properly!! Don't use
 if tune_params == False:
@@ -73,10 +77,10 @@ if tune_params == False:
     cnnobj = cnn.estimate_cnn.ModelDefinition(trainX, trainy, testX, testy)
 
     # TODO: change this part into yaml file in order to store it in a config file
-    repeats = 10
+    repeats  = 10
     n_filter = [32, 64]  # [32, 64, 128]
     n_kernel = [25, 10]  # [50, 25, 10, 5]
-    scores = list()
+    scores   = list()
     f_scores = list()
     k_scores = list()
 
@@ -86,7 +90,7 @@ if tune_params == False:
                 # score = cnnobj.evaluate_combined_model(trainX, trainy, testX, testy, f, k)
                 score = cnnobj.evaluate_model(trainX, trainy, testX, testy, f, k)
                 #score = cnnobj.evaluate_alt_model(trainX, trainy, testX, testy, f, k)
-
+                #score = cnnobj.evaluate_multihead_model(trainX, trainy, testX, testy, f, k, train_task_ix, test_task_ix)
                 score = score * 100.0
                 print('>F=%d; K=%d; #%d: %.3f' % (f, k, r + 1, score))
             scores.append(score)
