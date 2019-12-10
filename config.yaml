@@ -7,12 +7,14 @@
             wdir:     '/home/urs/sync/projects/autostim'
             patlist:  '/home/urs/sync/projects/autostim/data/patientenliste_onoff.xlsx'
             datpath:  '/home/urs/sync/projects/autostim/data/csvdata/nopca/'
+            emgrawdir:  '/home/urs/sync/projects/autostim/data/csvdata/nopca_raw/'
           david:
-            wdir:     '/media/storage/iPScnn'
-            patlist:  '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm/patientenliste_onoff.xlsx'
-            datpath:  '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm/analyses/csvdata/nopca/'
+            wdir:      '/media/storage/iPScnn'
+            patlist:   '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm/patientenliste_onoff.xlsx'
+            datpath:   '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm/analyses/csvdata/nopca/'
+            emgrawdir: '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm/analyses/csvdata/nopca_raw/'
     ignbad: true
-    scaling: true
+    scaling: false
     conds: ['ON', 'OFF']
     tasks:
       - 'hld'
