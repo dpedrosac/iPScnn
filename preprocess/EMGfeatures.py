@@ -1,7 +1,5 @@
 from . import EMGpreprocess
 
-#from .pyeeg import pyeeg
-
 import pandas as pd
 import numpy as np
 from numpy.lib.stride_tricks import as_strided

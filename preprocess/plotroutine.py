@@ -1,153 +1,130 @@
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-import pandas as pd
 import numpy as np
-import plotly.graph_objs as go
+import pandas as pds
+import matplotlib.pyplot as plt
+from matplotlib import gridspec
+from scipy import stats
+import seaborn as sns
+import math
 
 
-### NOT WORKING WHATSOEVER!!!!!
+class PlotRoutines:
+    def __init__(self, MOI, feat1, feat2, lbl, idx_lbl, details, type_plot, type_test):
+        self.MOI = MOI
+        self.dims = math.ceil(np.sqrt(len(MOI)))
+        self.gs = gridspec.GridSpec(self.dims, self.dims, wspace=.5, hspace=.5)
+        self.lbl = lbl
+        self.idx_lbl = idx_lbl
+        if type_plot == "bp":
+            self.boxplot(feat1, feat2, type_test)
+        else:
+            self.correlation(feat1, feat2, details)
 
-available_indicators = np.array(['ACC', 'GYRO', 'EMG'])
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+    def boxplot(self, feat1, feat2, type_test):
+        fig = plt.figure(figsize=(9, 6))
+        iter = 0
+        for i in range(self.dims):
+            for j in range(self.dims):
+                iter = iter + 1
 
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-app.layout = html.Div([
-    html.Div([
+                if i == self.dims - 1:
+                    lbl = self.lbl
+                else:
+                    lbl = []
 
-        html.Div([
-            dcc.Dropdown(
-                id='crossfilter-xaxis-column',
-                options=[{'label': i, 'value': i} for i in available_indicators], # replace by number ob subject/pseudonym
-                value='' #possibly only valid if some value entered, consider taking first subject
-            ),
-            dcc.RadioItems(
-                id='crossfilter-xaxis-type',
-                options=[{'label': i, 'value': i} for i in ['Linear', 'Log']],
-                value='Linear',
-                labelStyle={'display': 'inline-block'}
-            )
-        ],
-            style={'width': '49%', 'display': 'inline-block'}),
+                try:
+                    mtr = self.MOI[iter]
+                    dataplot = pds.DataFrame([feat1[mtr].values, feat2[mtr].values], index=self.idx_lbl).transpose()
 
-        #  html.Div([
-        #      dcc.Dropdown(
-        #       id='crossfilter-yaxis-column',
-        #          options=[{'label': i, 'value': i} for i in available_indicators],
-        #          value='Gyroscope'
-        #      ),
-        #      dcc.RadioItems(
-        #          id='crossfilter-yaxis-type',
-        #          options=[{'label': i, 'value': i} for i in ['Linear', 'Log']],
-        #          value='Linear',
-        #          labelStyle={'display': 'inline-block'}
-        #      )
-        # ], style={'width': '49%', 'float': 'right', 'display': 'inline-block'})
-    ], style={
-        'borderBottom': 'thin lightgrey solid',
-        'backgroundColor': 'rgb(250, 250, 250)',
-        'padding': '10px 5px'
-    }),
+                    sns.set(style="white", context="paper", font_scale=.84)
+                    sns.despine()
+                    ax = plt.subplot(self.gs[i * self.dims + j])
+                    sns.boxplot(data=dataplot,
+                                width=0.4,
+                                notch=False,
+                                palette="Blues",
+                                linewidth=1.2,
+                                fliersize=3.0,
+                                medianprops=dict(color="firebrick"),
+                                orient='v').set(ylabel=mtr)
+                    ax.set_xticklabels(lbl)
 
-    html.Div([
-        dcc.Graph(
-            id='crossfilter-indicator-scatter',
-            hoverData={'points': [{'customdata': 'Japan'}]} # replace with data from data, first recording?
-        )
-    ], style={'width': '49%', 'display': 'inline-block', 'padding': '0 20'}),
+                    sns.set(style="white", context="paper", font_scale=.84)
+                    sns.despine()
+                    sns.stripplot(data=dataplot,
+                                  color='k',  # Make points black
+                                  size=3.0,
+                                  alpha=0.6)  # and slightly transparent
+                    ax.set_xticklabels(lbl)
 
-    html.Div([
-        dcc.Graph(id='x-time-series'),
-        dcc.Graph(id='y-time-series'),
-    ], style={'display': 'inline-block', 'width': '49%'}),
-])
+                    if type_test == "indep":
+                        [h, pnpar] = stats.mannwhitneyu(dataplot[self.idx_lbl[0]].values,
+                                                        dataplot[self.idx_lbl[1]].values)
+                    elif type_test == "dep":
+                        [h, pnpar] = stats.wilcoxon(dataplot[self.idx_lbl[0]].values,
+                                                    dataplot[self.idx_lbl[1]].values)
+                    else:
+                        pnpar = 1
+                        print("please enter either 'dep' or 'indep' for tyoe_test!")
 
+                    if pnpar < .05:
+                        print("U={:.1f}, p = {:.3f}".format(h, pnpar))
+                        if pnpar < .001:
+                            form_pstring = "p < .001"
+                        else:
+                            form_pstring = "p = {:.3f}".format(pnpar)
 
-@app.callback(
-    dash.dependencies.Output('crossfilter-indicator-scatter', 'figure'),
-    [dash.dependencies.Input('crossfilter-xaxis-column', 'value'),
-     dash.dependencies.Input('crossfilter-yaxis-column', 'value'),
-     dash.dependencies.Input('crossfilter-xaxis-type', 'value'),
-     dash.dependencies.Input('crossfilter-yaxis-type', 'value')])
+                        style = dict(size=6, color='gray')
+                        ax.text(.5, max(dataplot.values.flatten()) * 1.12, form_pstring, ha='center', **style)
+                        ax.axhline(y=max(dataplot.values.flatten()) * 1.1, xmin=.35, xmax=.65,
+                                   color='k', linewidth=.5)
+                    print(mtr, ":", pnpar)
 
-def update_graph(xaxis_column_name, yaxis_column_name,
-                 xaxis_type, yaxis_type,
-                 year_value):
-    dff = df[df['Year'] == year_value]
+                except:
+                    print("Continuing")
 
-    return {
-        'data': [go.Scatter(
-            x=dff[dff['Indicator Name'] == xaxis_column_name]['Value'],
-            y=dff[dff['Indicator Name'] == yaxis_column_name]['Value'],
-            text=dff[dff['Indicator Name'] == yaxis_column_name]['Country Name'],
-            customdata=dff[dff['Indicator Name'] == yaxis_column_name]['Country Name'],
-            mode='markers',
-            marker={
-                'size': 15,
-                'opacity': 0.5,
-                'line': {'width': 0.5, 'color': 'white'}
-            }
-        )],
-        'layout': go.Layout(
-            xaxis={
-                'title': xaxis_column_name,
-                'type': 'linear' if xaxis_type == 'Linear' else 'log'
-            },
-            yaxis={
-                'title': yaxis_column_name,
-                'type': 'linear' if yaxis_type == 'Linear' else 'log'
-            },
-            margin={'l': 40, 'b': 30, 't': 10, 'r': 0},
-            height=450,
-            hovermode='closest'
-        )
-    }
+    def correlation(self, feat1, feat2, details):
+        fig = plt.figure(figsize=(9, 6))
+        iter = -1
+        for i in range(self.dims):
+            for j in range(self.dims):
+                iter = iter + 1
 
+                if i == self.dims - 1:
+                    lbl = "Change in UPDRS"
+                else:
+                    lbl = []
 
-def create_time_series(dff, axis_type, title):
-    return {
-        'data': [go.Scatter(
-            x=dff['Year'],
-            y=dff['Value'],
-            mode='lines+markers'
-        )],
-        'layout': {
-            'height': 225,
-            'margin': {'l': 20, 'b': 30, 'r': 10, 't': 10},
-            'annotations': [{
-                'x': 0, 'y': 0.85, 'xanchor': 'left', 'yanchor': 'bottom',
-                'xref': 'paper', 'yref': 'paper', 'showarrow': False,
-                'align': 'left', 'bgcolor': 'rgba(255, 255, 255, 0.5)',
-                'text': title
-            }],
-            'yaxis': {'type': 'linear' if axis_type == 'Linear' else 'log'},
-            'xaxis': {'showgrid': False}
-        }
-    }
+                try:
+                    mtr = self.MOI[iter]
+                    feat_temp = feat2[mtr].values - feat1[mtr].values
+                    updrs_temp = 100 * np.divide(details["updrsON"] - details["updrsOFF"],
+                                                 details["updrsON"])  # details["updrsDiff"]
 
+                    mtr = self.MOI[iter]
+                    sns.set(style="white", context="paper", font_scale=.84)
+                    sns.despine()
+                    ax = plt.subplot(self.gs[i * self.dims + j])
 
-@app.callback(
-    dash.dependencies.Output('x-time-series', 'figure'),
-    [dash.dependencies.Input('crossfilter-indicator-scatter', 'hoverData'),
-     dash.dependencies.Input('crossfilter-xaxis-column', 'value'),
-     dash.dependencies.Input('crossfilter-xaxis-type', 'value')])
-def update_y_timeseries(hoverData, xaxis_column_name, axis_type):
-    country_name = hoverData['points'][0]['customdata']
-    dff = df[df['Country Name'] == country_name]
-    dff = dff[dff['Indicator Name'] == xaxis_column_name]
-    title = '<b>{}</b><br>{}'.format(country_name, xaxis_column_name)
-    return create_time_series(dff, axis_type, title)
+                    lbl_y = "Change in " + mtr
+                    dataplot = pds.DataFrame({lbl_y: feat_temp.transpose(), "UPDRSchange": updrs_temp})
+                    value = (details['type'] < 1) | (details['type'] > 1)
+                    dataplot["color"] = np.where(value == True, "#9b59b6", "#3498db")
+                    sns.regplot(data=dataplot, x="UPDRSchange", y=lbl_y, scatter_kws={'facecolors':dataplot['color']},
+                                ci=95, n_boot=5000,
+                                marker="+")
+                    ax.set_xlabel(lbl)
+                    x_axis = ax.xaxis
+                    if i == self.dims - 1:
+                        x_axis.label.set_visible(True)
+                    else:
+                        x_axis.label.set_visible(False)
 
-@app.callback(
-    dash.dependencies.Output('y-time-series', 'figure'),
-    [dash.dependencies.Input('crossfilter-indicator-scatter', 'hoverData'),
-     dash.dependencies.Input('crossfilter-yaxis-column', 'value'),
-     dash.dependencies.Input('crossfilter-yaxis-type', 'value')])
-def update_x_timeseries(hoverData, yaxis_column_name, axis_type):
-    dff = df[df['Country Name'] == hoverData['points'][0]['customdata']]
-    dff = dff[dff['Indicator Name'] == yaxis_column_name]
-    return create_time_series(dff, axis_type, yaxis_column_name)
+                    ax.set_ylabel(lbl_y)
 
+                    slope, intercept, r_value, p_value, std_err = stats.linregress(dataplot[lbl_y],
+                                                                                   dataplot['UPDRSchange'])
 
-if __name__ == '__main__':
-    app.run_server(debug=True)
+                    print("for metric:", mtr, ",r-squared:", r_value ** 2, ",p =", p_value)
+
+                except:
+                    print("Continuing!")

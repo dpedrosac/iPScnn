@@ -13,8 +13,15 @@ class EMGPreprocess:
     """Functions which help to preprocess the EMG data properly"""
 
     def __init__(self):
-        with open('/media/storage/iPScnn/config.yaml', 'r') as f:
-            d = yaml.load(f.read())
+        if getpass.getuser() == "urs":
+            with open('/home/urs/sync/projects/autostim/analysis/iPScnn/config.yaml', 'r') as f:
+                d = yaml.load(f.read())
+        elif getpass.getuser() == "dpedr":
+            with open('D:/iPScnn/config.yaml', 'r') as f:
+                d = yaml.load(f.read())
+        else:
+            with open('/media/storage/iPScnn/config.yaml', 'r') as f:
+                d = yaml.load(f.read())
 
         # TODO insert a list of features to extract in the yaml file
         self.debug = False

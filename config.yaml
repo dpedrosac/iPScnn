@@ -13,6 +13,12 @@
             patlist:   '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm/patientenliste_onoff.xlsx'
             datpath:   '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm/analyses/csvdata/nopca/'
             emgrawdir: '/media/david/windows/Dokumente und Einstellungen/dpedr/Jottacloud/onoff_svm/analyses/csvdata/nopca_raw/'
+          dpedr:
+            wdir:      'D:/iPScnn'
+            patlist:   'C:/Users/dpedr/Jottacloud/onoff_svm/patientenliste_onoff.xlsx'
+            datpath:   'C:/Users/dpedr/Jottacloud/onoff_svm/analyses/csvdata/nopca/'
+            emgrawdir: 'C:/Users/dpedr/Jottacloud/onoff_svm/analyses/csvdata/nopca_raw/'
+
     ignbad: true
     scaling: false
     conds: ['ON', 'OFF']

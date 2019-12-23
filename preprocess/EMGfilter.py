@@ -19,7 +19,7 @@ Q_x_f = lambda x, signal, t, f: np.sum([np.square(harmonic_x_f(x, t, f) - signal
 
 
 class Filter:
-    """Subset of functions ntended to filter and preprocess the EMG which will be used later to extract features"""
+    """Subset of functions intended to filter and preprocess the EMG which will be used later to extract features"""
 
     def __init__(self):
         self.debug = False
@@ -77,7 +77,7 @@ class Filter:
         return y
 
 
-    def pre_process(self, signal, window_t=10, freq=200, low_pass=15, high_pass=85):
+    def pre_process(self, signal, window_t=10, freq=200, low_pass=20, high_pass=80):
         notch_frequencies = [49.99, 100]
         val = self.multi_notch(signal, window_t * freq, notch_frequencies)
         signal = self.butter_bandpass_filter(signal - val, low_pass, high_pass, freq)

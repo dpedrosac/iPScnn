@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <features_calculation>
-    <windowing window="200" step="100" />
+    <windowing window="400" step="200" />
 
     <emg_desc>
         <feature name="IAV" /> <!--Integral Absolute Value-->
@@ -20,14 +20,14 @@
         <feature name="MYOP" threshold="1.5"/> <!--Myopulse Percentage Rate-->
         <feature name="RMS" /> <!--Root Mean Square-->
         <feature name="Skew" /> <!--Skewness-->
-        <feature name="SSC" threshold="2.5"/> <!--Slope Sign Change-->
+        <feature name="SSC" threshold="2"/> <!--Slope Sign Change-->
         <feature name="SSI" /> <!--Simple Square Integral-->
         <feature name="TM" order="4" /> <!--Absolute Temporal Moment-->
         <feature name="VAR"  /> <!--Variance-->
         <feature name="V" v="3"/> <!--V-Order-->
-        <feature name="WAMP" threshold="2.5"/> <!--Willison Amplitude-->
+        <feature name="WAMP" threshold="2"/> <!--Willison Amplitude-->
         <feature name="WL" /> <!--Waveform Length-->
-        <feature name="ZC" threshold="2.5" /> <!--Zero Crossing-->
+        <feature name="ZC" threshold="2" /> <!--Zero Crossing-->
         <feature name="MNF" /> <!--Mean Frequency-->
         <feature name="MDF" /> <!--Median Frequency-->
         <feature name="PKF" /> <!--Peak Frequency-->
