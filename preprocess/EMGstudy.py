@@ -165,3 +165,11 @@ for id_, id_splits in splits_all.items(): # k-fold-validation
 
 # Save all data to separate file, which may be used later for plotting purposes
 pickle.dump(output, open(os.path.join(fileobj.datobj.wdir, "data", "EMG", "results", "results_tremorclass.bin"), "wb"))
+
+## --------------------------------------------------------------------------------------------------------------------
+
+# TODO First part, P.S. the estimations of differences between metrics shoudld be displayed before the shallow learn part begins
+
+# TODO Second part, estimating how much time of a single rest recording is needed to obtain a sufficient discrimination; This would be needed in the prepare_data... function with 1.5-8secs in steps of .5 secs steps
+
+# TODO Third part, estimating different regression between the changes in features and changes in the UPDRS; Besides a linear regression should be displayes as well
