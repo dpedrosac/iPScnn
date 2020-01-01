@@ -58,7 +58,6 @@ class DataPipeline:
 
         self.generate_subjlist(pseud)
 
-
     def generate_subjlist(self, pseud):
         """imports the pseudonyms of the subjects to be processed in order to later read the data accordingly"""
         os.chdir(self.wdir)

@@ -1,20 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os, glob, yaml, getpass
-import re
+import os, glob, yaml, getpass, math
 import numpy as np
-import pandas as pd
-from typing import List, Dict, Sized
-from scipy.special import comb
-from scipy.ndimage.morphology import binary_dilation, binary_erosion
-from scipy.signal import medfilt
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
-import warnings
-import matplotlib.pyplot as plt
 import ast
-import math
 from numpy.lib.stride_tricks import as_strided
 
 import warnings
@@ -23,29 +12,17 @@ from sklearn.exceptions import DataConversionWarning
 warnings.filterwarnings(action='ignore', category=DataConversionWarning)
 warnings.filterwarnings(action='ignore', category=UserWarning, message='Variables are collinear')
 
-__all__ = ["file_browser", "moving_window_stride", "window_trapezoidal", "as_strided"]
+__all__ = ["moving_window_stride", "window_trapezoidal", "as_strided"]
 
 
 def __init__(self):
     with open('/media/storage/iPScnn/config.yaml', 'r') as f:
         d = yaml.load(f.read())
 
-    # TODO insert a list of features to extract in the yaml file
     self.debug = False
     self.samplerate = 200
     self.emgdir = d[0]['dataworks']['folders'][getpass.getuser()]['emgrawdir']
 
-
-def file_browser(self, word):
-    """function which helps to find files with certain content, specified in the input"""
-    file = []
-    os.chdir(self.emgdir)
-
-    for f in glob.glob("*"):
-        if word in f:
-            file.append(f)
-
-    return file
 
 def convert_types_in_dict(xml_dict):
     """

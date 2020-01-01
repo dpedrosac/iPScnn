@@ -24,8 +24,10 @@ conds = ['OFF', 'ON']
 file_trunk = datobj.wdir + "/data/EMG/features_subj/"
 details = pds.read_csv(datobj.wdir + "/data/EMG/detailsEMG.csv")
 
-MOI = ['IAV', 'MAV1', 'AAC', 'DASDV', 'SSC', 'WAMP', 'RMS', 'ZC', 'WL']
-COI = [1,4,8] # channel of interest
+#MOI = ['IAV', 'MAV1', 'AAC', 'DASDV', 'SSC', 'WAMP', 'RMS', 'ZC', 'WL']
+MOI = ['MAV1']
+
+COI = [1,2,3,4,5,6,7,8] # channel of interest
 idx1 = datobj.subjlist[1:13]
 idx2 = datobj.subjlist[15:38]
 datobj.subjlist = idx1.append(idx2)

@@ -9,8 +9,7 @@ import numpy as np
 from scipy.optimize import minimize
 from scipy.signal import butter, filtfilt
 
-from . import EMGpreprocess
-
+from . import EMGfeat_functions
 
 harmonic_x = lambda x, t: x[0] * np.sin(2 * np.pi * x[2] * t) + x[1] * (np.cos(2 * np.pi * x[2] * t))
 harmonic_x_f = lambda x, t, f: x[0] * np.sin(2 * np.pi * f * t) + x[1] * (np.cos(2 * np.pi * f * t))
@@ -34,7 +33,6 @@ class Filter:
                           (x[0] * s + x[1] * c - signal)]) / len(signal)
         return np.array([dx0, dx1, dx2])
 
-
     def Q_jacobian_f(self, x, signal, t, f):
         dx0 = 2 * np.sum([np.sin(2 * np.pi * f * t) * (
                 x[0] * np.sin(2 * np.pi * f * t) + x[1] * (np.cos(2 * np.pi * f * t)) - signal)]) / len(signal)
@@ -42,9 +40,8 @@ class Filter:
                 x[0] * np.sin(2 * np.pi * f * t) + x[1] * (np.cos(2 * np.pi * f * t)) - signal)]) / len(signal)
         return np.array([dx0, dx1])
 
-
     def multi_notch(self, series, window, notch_frequencies):
-        windows_strided, indexes = EMGpreprocess.moving_window_stride(series.values, np.int_(window), np.int_(window))
+        windows_strided, indexes = EMGfeat_functions.moving_window_stride(series.values, np.int_(window), np.int_(window))
         indexes = np.append([0], indexes + 1)
         vec = np.zeros(np.shape(series))
         for freq in notch_frequencies:
@@ -62,7 +59,6 @@ class Filter:
                 i = i + 1
         return vec
 
-
     def butter_bandpass(self, low_cutoff, high_cutoff, fs, order=5):
         nyq = 0.5 * fs
         low = low_cutoff / nyq
@@ -70,19 +66,16 @@ class Filter:
         b, a = butter(order, [low, high], btype='band')
         return b, a
 
-
     def butter_bandpass_filter(self, data, low_cutoff, high_cutoff, fs, order=5):
         b, a = self.butter_bandpass(low_cutoff, high_cutoff, fs, order=order)
         y = filtfilt(b, a, data)
         return y
 
-
-    def pre_process(self, signal, window_t=10, freq=200, low_pass=20, high_pass=80):
+    def pre_process(self, signal, window_t=10, freq=200, low_pass=20, high_pass=90):
         notch_frequencies = [49.99, 100]
         val = self.multi_notch(signal, window_t * freq, notch_frequencies)
         signal = self.butter_bandpass_filter(signal - val, low_pass, high_pass, freq)
         return signal
-
 
     def apply_filter(self, df: pd.DataFrame):
         start = time.time()
