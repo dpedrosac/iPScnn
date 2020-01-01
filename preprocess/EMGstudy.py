@@ -24,7 +24,7 @@ details = EMGdetails.extract_details(subj=fileobj.subj, act="return")
 # Get a list of all recordings available for the "rst"-condition and for all subjects listed in fileobj, filter and
 # extract features (if not already present)
 listEMGallOFF, listEMGallON = fileobj.get_EMGfilelist_all(task='rst')
-fileobj.filter_data_and_extract_features(listEMGallOFF, '', '', '')
+fileobj.filter_data_and_extract_features(listEMGallOFF, '', '', '') # see TODO first; here code needs adaptation to allow only a subpart of the signal to be analysed
 fileobj.filter_data_and_extract_features(listEMGallON, '', '', '')
 
 # Put data into correct format
