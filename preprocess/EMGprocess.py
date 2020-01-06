@@ -116,13 +116,16 @@ class EMGfileworks:
         else:
             return preprocessing.normalize(df.values)
 
-    def filter_data_and_extract_features(self, list_files, data_folder, filtered_data_folder, feature_folder):
+    def filter_data_and_extract_features(self, list_files, data_folder, filtered_data_folder, feature_folder, dur):
         """this functions filters data in order to proceed with feature extraction later"""
         filtobj = preprocess.EMGfilter.Filter
         file_features = self.datobj.wdir + "/preprocess/all_features.xml"
 
         if data_folder == '':
             data_folder = self.emgdir
+
+        if dur == 'tot':
+            dur = 8
 
         if filtered_data_folder == '':
             filtered_data_folder = os.path.join(self.datobj.wdir, 'data', 'EMG', 'filtered_data')
@@ -138,11 +141,13 @@ class EMGfileworks:
 
         # by each filename in download folder
         for file in list_files:
-            output_file = os.path.splitext(file)[0] + '_filtered.csv'
-            if not os.path.isfile(os.path.join(filtered_data_folder, output_file)):
+            output_file = os.path.splitext(file)[0] + "_" + str(dur) + 'secs_filtered.csv'
+            output_file2 = os.path.splitext(file)[0] + "_" + str(dur) + 'secs_features.pkl'
+            if not (os.path.isfile(os.path.join(filtered_data_folder, output_file)) or
+                    os.path.isfile(os.path.join(feature_folder, output_file2))):
                 datemg = list()
                 dattemp = self.load_file(os.path.join(data_folder, file))
-                datemg.append(dattemp)
+                datemg.append(dattemp[0:dur*200])
 
                 emg = pds.DataFrame(np.vstack(datemg), columns=["EMG_1", "EMG_2", "EMG_3", "EMG_4",
                                                                 "EMG_5", "EMG_6", "EMG_7", "EMG_8"])
@@ -164,10 +169,12 @@ class EMGfileworks:
 
                 # Extract all available features
                 df = preprocess.EMGfeatures.features_from_xml_on_df(file_features, emg)
-                output_file = os.path.splitext(file)[0] + "_features.pkl"
-                df.to_pickle(os.path.join(feature_folder, output_file))
+                df.to_pickle(os.path.join(feature_folder, output_file2))
+            elif (os.path.isfile(os.path.join(filtered_data_folder, output_file))) & ("trial1_" in file):
+                print("Filtering and feature extraction for " + file[0:11] + " at " + str(dur) +
+                      " sec. duration already finished, continuing ...")
             else:
-                print("Filtering for:" + file + "already finished, continuing with next file")
+                continue
 
     def split(self, items: Sized, n_splits=None, test_size=0.1, train_size=None, random_state=None):
         """split function which ensures that data is split into k number of chunks in order to run k-fold
@@ -446,14 +453,14 @@ class EMGpredict:
 
 class StandardScalerPerFeature(StandardScaler):
 
-        def fit(self, X: pds.DataFrame, y=None):
-            features = [re.match(r"input_[0-9]+_([A-Z]+)_[0-9]+", l).group(1) for l in list(X)]
-            unique_features = list(set(features))
+    def fit(self, X: pds.DataFrame, y=None):
+        features = [re.match(r"input_[0-9]+_([A-Z]+)_[0-9]+", l).group(1) for l in list(X)]
+        unique_features = list(set(features))
 
-            fit_data = pds.DataFrame(columns=features)
+        fit_data = pds.DataFrame(columns=features)
 
-            for uf in unique_features:
-                uf_data = X.filter(regex="input_[0-9]+_" + uf + "_[0-9]+").values.reshape(-1, 1).astype(float)
-                fit_data[uf] = uf_data[:, 0]
+        for uf in unique_features:
+            uf_data = X.filter(regex="input_[0-9]+_" + uf + "_[0-9]+").values.reshape(-1, 1).astype(float)
+            fit_data[uf] = uf_data[:, 0]
 
-            return super().fit(fit_data, y)
+        return super().fit(fit_data, y)

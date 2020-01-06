@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <features_calculation>
-    <windowing window="200" step="100" />
+    <windowing window="100" step="50" />
 
     <emg_desc>
         <feature name="IAV" /> <!--Integral Absolute Value-->

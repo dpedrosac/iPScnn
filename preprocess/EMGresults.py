@@ -3,7 +3,7 @@
 
 import os
 import preprocess.dataworks
-import preprocess.plotroutine
+import preprocess.plot_features
 import numpy as np
 import pandas as pds
 import matplotlib.pyplot as plt
@@ -58,8 +58,8 @@ for c in conds:
                 feat_off[mtr].iloc[idx_subj] = np.mean(dattemp.values.flatten())
 
 # Start plotting routine group comparisons between ON and OFF
-preprocess.plotroutine.PlotRoutines(MOI, feat_off, feat_on, ['OFF', 'ON'], ["OFF", "ON"], details, "bp", "dep")
-preprocess.plotroutine.PlotRoutines(MOI, feat_off, feat_on, ['OFF', 'ON'], ["OFF", "ON"], details, "regr", "dep")
+preprocess.plot_features.PlotRoutines(MOI, feat_off, feat_on, ['OFF', 'ON'], ["OFF", "ON"], details, "bp", "dep")
+preprocess.plot_features.PlotRoutines(MOI, feat_off, feat_on, ['OFF', 'ON'], ["OFF", "ON"], details, "regr", "dep")
 
 # Start with subjtype comparisons
 
@@ -94,5 +94,5 @@ for idx_g, g in enumerate(groups):
                 feat_mt[mtr].iloc[pseud_no] = np.mean(dattemp.values.flatten())
 
 
-preprocess.plotroutine.PlotRoutines(MOI, feat_br, feat_td, ['BR', 'TD'],
-                                    ["bradykinetic \nrigid", "tremor-\ndominant"], details, "bp", "indep")
+preprocess.plot_features.PlotRoutines(MOI, feat_br, feat_td, ['BR', 'TD'],
+                                      ["bradykinetic \nrigid", "tremor-\ndominant"], details, "bp", "indep")

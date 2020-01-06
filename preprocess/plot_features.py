@@ -21,7 +21,7 @@ class PlotRoutines:
 
     def boxplot(self, feat1, feat2, type_test):
         fig = plt.figure(figsize=(9, 6))
-        iter = 0
+        iter = -1
         for i in range(self.dims):
             for j in range(self.dims):
                 iter = iter + 1
@@ -67,7 +67,7 @@ class PlotRoutines:
                         print("please enter either 'dep' or 'indep' for tyoe_test!")
 
                     if pnpar < .05:
-                        print("U={:.1f}, p = {:.3f}".format(h, pnpar))
+                        # print("U={:.1f}, p = {:.3f}".format(h, pnpar))
                         if pnpar < .001:
                             form_pstring = "p < .001"
                         else:
@@ -77,10 +77,11 @@ class PlotRoutines:
                         ax.text(.5, max(dataplot.values.flatten()) * 1.12, form_pstring, ha='center', **style)
                         ax.axhline(y=max(dataplot.values.flatten()) * 1.1, xmin=.35, xmax=.65,
                                    color='k', linewidth=.5)
-                    print(mtr, ":", pnpar)
+                    #print(mtr, ":", pnpar)
 
                 except:
-                    print("Continuing")
+                    continue
+                    # print("Continuing")
 
     def correlation(self, feat1, feat2, details):
         fig = plt.figure(figsize=(9, 6))
@@ -109,7 +110,7 @@ class PlotRoutines:
                     dataplot = pds.DataFrame({lbl_y: feat_temp.transpose(), "UPDRSchange": updrs_temp})
                     value = (details['type'] < 1) | (details['type'] > 1)
                     dataplot["color"] = np.where(value == True, "#9b59b6", "#3498db")
-                    sns.regplot(data=dataplot, x="UPDRSchange", y=lbl_y, scatter_kws={'facecolors':dataplot['color']},
+                    sns.regplot(data=dataplot, x="UPDRSchange", y=lbl_y, scatter_kws={'facecolors': dataplot['color']},
                                 ci=95, n_boot=5000,
                                 marker="+")
                     ax.set_xlabel(lbl)
@@ -124,7 +125,8 @@ class PlotRoutines:
                     slope, intercept, r_value, p_value, std_err = stats.linregress(dataplot[lbl_y],
                                                                                    dataplot['UPDRSchange'])
 
-                    print("for metric:", mtr, ",r-squared:", r_value ** 2, ",p =", p_value)
+                    # print("for metric:", mtr, ",r-squared:", r_value ** 2, ",p =", p_value)
 
                 except:
-                    print("Continuing!")
+                    continue
+                    # print("Continuing!")
