@@ -8,7 +8,7 @@ import cnn.hyperparameter_scan_cnn
 from importlib import reload
 import numpy as np
 from keras.models import Sequential
-from keras.layers import Dense, Flatten, Conv1D
+from keras.layers import Dense, Flatten, Conv1D, Concatenate
 import talos as ta
 import pandas as pds
 import yaml
@@ -18,6 +18,10 @@ reload(cnn.estimate_cnn)
 reload(cnn.hyperparameter_scan_cnn)
 
 # ------------------------------------------------------------------------------------------
+
+# define model type
+modeltype = 'mh' # 'mh' = multihead, 'cnn' = convnet
+
 # loads and preprocesses data as needed
 datobj = preprocess.dataworks.DataPipeline('', '', '')
 datobj.generate_subjlist()
@@ -50,11 +54,11 @@ else:
 
     for idx, n in enumerate(list_ch):
         if idx == 0:
-            datON  = pds.read_csv(os.path.join(wdir + "/data/dataON_"  + n + ".csv"), sep=';')
-            datOFF = pds.read_csv(os.path.join(wdir + "/data/dataOFF_" + n + ".csv"), sep=';')
+            datON  = pds.read_csv(os.path.join(wdir + "/data/dataON_"  + n + ".csv"), sep=';', header = None)
+            datOFF = pds.read_csv(os.path.join(wdir + "/data/dataOFF_" + n + ".csv"), sep=';', header = None)
         else:
-            datON  = np.dstack((datON , pds.read_csv(os.path.join(wdir + "/data/dataON_"  + n +".csv"), sep=';')))
-            datOFF = np.dstack((datOFF, pds.read_csv(os.path.join(wdir + "/data/dataOFF_" + n +".csv"), sep=';')))
+            datON  = np.dstack((datON , pds.read_csv(os.path.join(wdir + "/data/dataON_"  + n +".csv"), sep=';', header = None)))
+            datOFF = np.dstack((datOFF, pds.read_csv(os.path.join(wdir + "/data/dataOFF_" + n +".csv"), sep=';', header = None)))
 
     detailsON  = pds.read_csv(os.path.join(wdir + "/data/detailsON.csv" ))
     detailsOFF = pds.read_csv(os.path.join(wdir + "/data/detailsOFF.csv"))
@@ -64,11 +68,26 @@ print(datON.shape)
 # ------------------------------------------------------------------------------------------
 # start categorising data in order to prepare the cnn model training/estimation
 catobj = preprocess.dataworks.Categorize()
-smplsONtrain, smplsONtest, smplsOFFtrain, smplsOFFtest = catobj.subsample_data(datON, datOFF, .8)
+smplsONtrain, smplsONtest, smplsOFFtrain, smplsOFFtest = catobj.subsample_data(datON, datOFF, detailsON, detailsOFF, modeltype, .8, d[0]["dataworks"]["tasks"])
+
 # TODO permutation for e.g. k-fold crossvalidation could be included here
 
-trainX, trainy = catobj.create_cat(smplsONtrain, smplsOFFtrain)
-testX , testy  = catobj.create_cat(smplsONtest  , smplsOFFtest)
+trainX, trainy = catobj.create_cat(smplsONtrain, smplsOFFtrain, modeltype)
+testX , testy  = catobj.create_cat(smplsONtest , smplsOFFtest , modeltype)
+
+if(modeltype=="mc"):
+    print(trainX[0].shape)
+    for i  in range(1, len(trainX)):
+        if( i==1):
+            tmptrainX = np.concatenate([trainX[0], trainX[1]], axis = 2)
+            tmptestX  = np.concatenate([testX[0], testX[1]], axis = 2)
+        else:
+            tmptrainX = np.concatenate([tmptrainX, trainX[i]], axis = 2)
+            tmptestX  = np.concatenate([tmptestX, testX[i]], axis=2)
+
+    trainX = tmptrainX
+    testX  = tmptestX
+
 
 tune_params = False # tuning the hyperparameters doesn't work so far for unknon reasons. Supposedly, 3D data is not recognised properly!! Don't use
 if tune_params == False:
@@ -78,8 +97,8 @@ if tune_params == False:
 
     # TODO: change this part into yaml file in order to store it in a config file
     repeats  = 10
-    n_filter = [32, 64]  # [32, 64, 128]
-    n_kernel = [25, 10]  # [50, 25, 10, 5]
+    n_filter = [150]  # [32, 64, 128]
+    n_kernel = [50]  # [50, 25, 10, 5]
     scores   = list()
     f_scores = list()
     k_scores = list()
@@ -88,7 +107,11 @@ if tune_params == False:
         for f in n_filter:
             for r in range(repeats):
                 # score = cnnobj.evaluate_combined_model(trainX, trainy, testX, testy, f, k)
-                score = cnnobj.evaluate_model(trainX, trainy, testX, testy, f, k)
+                #score = cnnobj.evaluate_model(trainX, trainy, testX, testy, f, k)
+                print(len(trainX))
+                print(trainX[0].shape)
+                score = cnnobj.evaluate_mh_model(trainX, trainy, testX, testy, f, k)
+                #score = cnnobj.evaluate_mc_model(trainX, trainy, testX, testy, f, k)
                 #score = cnnobj.evaluate_alt_model(trainX, trainy, testX, testy, f, k)
                 #score = cnnobj.evaluate_multihead_model(trainX, trainy, testX, testy, f, k, train_task_ix, test_task_ix)
                 score = score * 100.0
