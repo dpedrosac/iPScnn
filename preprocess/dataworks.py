@@ -11,13 +11,16 @@ from keras.utils import to_categorical
 import yaml
 
 class DataPipeline:
-    def __init__(self, conds, tasks, dev):
+    def __init__(self, conds, tasks, dev, pseud):
 
         # load local settings.
         # TODO ugly because we use a hardcoded path here and call this exact code snippet also in iPScnn.py
         # This should be dealt with in an own library e.g. "utils.load_settings"
         if getpass.getuser() == "urs":
             with open('/home/urs/sync/projects/autostim/analysis/iPScnn/config.yaml', 'r') as f:
+                d = yaml.load(f.read())
+        elif getpass.getuser() == "dpedr":
+            with open('D:/iPScnn/config.yaml', 'r') as f:
                 d = yaml.load(f.read())
         else:
             with open('/media/storage/iPScnn/config.yaml', 'r') as f:
@@ -53,27 +56,29 @@ class DataPipeline:
         else:
             self.dev = dev
 
-    def generate_subjlist(self):
+        self.generate_subjlist(pseud)
+
+    def generate_subjlist(self, pseud):
         """imports the pseudonyms of the subjects to be processed in order to later read the data accordingly"""
         os.chdir(self.wdir)
         filename = self.patlist
-        #if getpass.getuser() == 'urs':
-        #    filename = os.path.join(self.wdir + str("/data/patientenliste_onoff.xlsx"))
-        #else:
-        #    filename = os.path.join(self.wdir + str("/patientenliste_onoff.xlsx"))
-
         self.frame_name = pds.read_excel(filename,
                                     sheet_name='working')
 
-        # ignores the data categorised as wrong/bad from the dataset (see patienten_onoff.xls for details)
-        if self._ignbad:
-            self.subjlist = self.frame_name.pseud[self.frame_name.group == 1]
-            self.idx_list = np.where(self.frame_name['group'] == 1)
+        if pseud == '':
+            # ignores the data categorised as wrong/bad from the dataset (see patienten_onoff.xls for details)
+            if self._ignbad:
+                self.subjlist = self.frame_name.pseud[self.frame_name.group == 1]
+                self.idx_list = np.where(self.frame_name['group'] == 1)
+            else:
+                self.subjlist = self.frame_name.pseud
         else:
-            self.subjlist = self.frame_name.pseud
+            self.subjlist = self.frame_name[self.frame_name.pseud == pseud]
+            self.idx_list = np.where(self.frame_name['pseud'] == pseud)
 
     def load_all(self, window=False):
-        """loads all available data for the subjects in the list which was imported via (importXLS); At the end, there
+        """loads all available data for the
+                subjects in the list which was imported via (importXLS); At the end, there
         should be two files with a trial x time x sensor arrangement. The latter may include only ACC (size = 3),
         ACC+GYRO (size = 6) or ACC+GYRO+EMG (size=14), or any other combination"""
         #if getpass.getuser() == 'urs':
