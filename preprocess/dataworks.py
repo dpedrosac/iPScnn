@@ -108,6 +108,7 @@ class DataPipeline:
                             datlength = dattemp.shape[0]
 
                         if 'ACC' in self.dev:
+                            print(os.path.join(self.datpath, list_files_acc[fix]))
                             dattemp = self.load_file(os.path.join(self.datpath, list_files_acc[fix]))
 
                             if datlength != None:
@@ -232,31 +233,87 @@ class DataPipeline:
 
         return file
 
-
 class Categorize:
     def __init__(self):
         pass
 
-    def subsample_data(self, datON, datOFF, ratio):
+    def subsample_data(self, datON, datOFF, detailsON, detailsOFF, modeltype, ratio, tasks):
         """in order to create a test and a validation dataset, this part just randomly samples a specific ratio of
-        recordings and assigns them as test data; the output are two different datasets with all available data """
+        recordings and assigns them as test data; the output are two different datasets with all available data.
+        also for multihead models data is splitted into task specific matrices
+        TODO there are two conditionals on modeltype necessary. merge?"""
 
-        trainingON_idx = np.random.randint(datON.shape[0], size=int(round(datON.shape[0] * ratio)))
-        testON_idx = np.setdiff1d(np.arange(datON.shape[0]), trainingON_idx)
-        smplsONtrain, smplsONtest = datON[trainingON_idx, :, :], datON[testON_idx, :, :]
+        if modeltype == 'mh':
+            # data preprocessing for multihead model
+            datONout = list()
+            detailsONout = list()
+            datOFFout = list()
+            detailsOFFout = list()
+            cnt = 0
+            outONlen = []
+            outOFFlen = []
+            for task in np.unique(detailsON.task):
+                # split data into task specific matrices
+                datONout.append(datON [detailsON ['task'] == task, :, :])
+                datOFFout.append(datOFF[detailsOFF['task'] == task, :, :])
+                detailsONout.append( detailsON [detailsON ['task'] == task])
+                detailsOFFout.append(detailsOFF[detailsOFF['task'] == task])
+                outONlen.append( datONout [cnt].shape[0])
+                outOFFlen.append(datOFFout[cnt].shape[0])
+                cnt = cnt + 1
+            minOFFlen = min(outOFFlen)
+            minONlen  = min(outONlen)
+            cnt = 0
+            for task in tasks:
+                # shave all task matrices to same length
+                # TODO: this will always delete data of the last subject.
+                #       could be more sensible to randomize data first
+                datONout [cnt] = datONout [cnt][0:minONlen , :, :]
+                datOFFout[cnt] = datOFFout[cnt][0:minOFFlen, :, :]
+                detailsONout [cnt] = detailsONout [cnt][0:minONlen]
+                detailsOFFout[cnt] = detailsOFFout[cnt][0:minOFFlen]
+                cnt = cnt +1
+        else:
+            minONlen  = datON.shape [0]
+            minOFFlen = datOFF.shape[0]
 
-        trainingOFF_idx = np.random.randint(datOFF.shape[0], size=int(round(datOFF.shape[0] * ratio)))
-        testOFF_idx = np.setdiff1d(np.arange(datOFF.shape[0]), trainingOFF_idx)
-        smplsOFFtrain, smplsOFFtest = datOFF[trainingOFF_idx, :, :], datOFF[testOFF_idx, :, :]
+        trainingON_idx  = np.random.randint(minONlen , size=int(round(minONlen  * ratio)))
+        trainingOFF_idx = np.random.randint(minOFFlen, size=int(round(minOFFlen * ratio)))
+        testON_idx  = np.setdiff1d(np.arange(minONlen) , trainingON_idx )
+        testOFF_idx = np.setdiff1d(np.arange(minOFFlen), trainingOFF_idx)
+
+        if modeltype == 'mh':
+            cnt = 0
+            smplsONtrain = list()
+            smplsONtest = list()
+            smplsOFFtrain = list()
+            smplsOFFtest = list()
+            for task in tasks:
+                smplsONtrain.append( datONout [cnt][trainingON_idx  , :, :])
+                smplsONtest.append(  datONout [cnt][testON_idx      , :, :])
+                smplsOFFtrain.append(datOFFout[cnt][trainingOFF_idx , :, :])
+                smplsOFFtest.append( datOFFout[cnt][testOFF_idx     , :, :])
+                cnt = cnt + 1
+        else:
+            smplsONtrain,  smplsONtest  = datON [trainingON_idx , :, :], datON [testON_idx , :, :]
+            smplsOFFtrain, smplsOFFtest = datOFF[trainingOFF_idx, :, :], datOFF[testOFF_idx, :, :]
 
         return smplsONtrain, smplsONtest, smplsOFFtrain, smplsOFFtest
 
-    def create_cat(self, X, Y):
+    def create_cat(self, X, Y, modeltype):
         """this function establishes the categories for the data, i.e. whether it is an 'ON' or 'OFF' condition and
         concatenates all available recordings into a single matrix"""
-        cats = np.zeros(X.shape[0] + Y.shape[0])
-        cats[0:X.shape[0]] = 1
-        cats = to_categorical(cats)
-        datAll = np.concatenate([X, Y])
+        if modeltype == "mh":
+            cats = np.zeros(X[0].shape[0] + Y[0].shape[0])
+            cats[0:X[1].shape[0]] = 1
+            cats = to_categorical(cats)
+            datAll = list()
+            for i in range(0,len(X)):
+                datAll.append(np.concatenate([X[i], Y[i]]))
+        else:
+            cats = np.zeros(X.shape[0] + Y.shape[0])
+            cats[0:X.shape[0]] = 1
+            cats = to_categorical(cats)
+            datAll = np.concatenate([X, Y])
 
         return datAll, cats
