@@ -8,28 +8,22 @@ from typing import List, Dict, Sized
 from sklearn.metrics import confusion_matrix
 import pickle
 import pandas as pds
-import numpy as np
 from time import sleep
 
 #  ------- ------- ------- ------- General settings ------- ------- ------- ------- ------- ------- ------- -------
-# conds = ['OFF', 'ON']  # conditions to test for
-COI = [1, 2, 3, 4, 5, 6, 7, 8]  # channel of interest
-fileobj = preprocess.EMGprocess.EMGfileworks('rst', subj='all', scaling=False)
+cond = 'OFF'            # conditions to test for
+COI = [4,5,8]           # channels of interest
+task = 'rst'            # selected task
+n_splits = 10           # n-fold cross validation
+
+fileobj = preprocess.EMGprocess.EMGfileworks(task=task, subj='all', scaling=False)
 svmobj = preprocess.EMGprocess.EMGpredict()
-EMGdetails = preprocess.EMGprocess.ExtractEMGfeat(task='rst', filename_append='')
+EMGdetails = preprocess.EMGprocess.ExtractEMGfeat(task=task, filename_append='')
 details = EMGdetails.extract_details(subj=fileobj.subj, act="return")
-n_splits = 10 # n-fold cross validation
+#  ------- ------- ------- ------- ------- ------- ------- ------- ------- ------- ------- ------- ------- -------
 
-# for c in conds: #this part may be needed for second part of analyses
-#    if c == 'OFF':
-#        listEMGsubjOFF = fileobj.get_EMGfilelist_per_subj(cond=c, task='rst', subj='')
-#    else:
-#        listEMGsubjON = fileobj.get_EMGfilelist_per_subj(cond=c, task='rst', subj='')
-
-# Extracts list of all recordings for <task> and for all subj. in <fileobj>; filters/extracts features (if not done yet)
-listEMGallOFF, listEMGallON = fileobj.get_EMGfilelist_all(task='rst')
-
-for k in range(1, 9, 1): # loop through all segments in order to read how much recording time is necessary
+listEMGallOFF, listEMGallON = fileobj.get_EMGfilelist_all(task='tap')
+for k in range(8, 9, 1): # loop through all segments in order to read how much recording time is necessary
     fileobj.filter_data_and_extract_features(listEMGallOFF, '',
                                              os.path.join(fileobj.datobj.wdir, 'data', 'EMG', 'filtered_data' + str(k)),
                                              os.path.join(fileobj.datobj.wdir, 'data', 'EMG',
@@ -39,11 +33,22 @@ for k in range(1, 9, 1): # loop through all segments in order to read how much r
                                              os.path.join(fileobj.datobj.wdir, 'data', 'EMG',
                                                           'features_split' + str(k)), k)
 
+listEMGallOFF, listEMGallON = fileobj.get_EMGfilelist_all(task='rst')
+for k in range(1, 9, 1): # loop through all segments in order to read how much recording time is necessary
+    fileobj.filter_data_and_extract_features(listEMGallOFF, '',
+                                             os.path.join(fileobj.datobj.wdir, 'data', 'EMG', 'filtered_data' + str(k)),
+                                             os.path.join(fileobj.datobj.wdir, 'data', 'EMG',
+                                                          'features_split' + str(k)), k)
+    #fileobj.filter_data_and_extract_features(listEMGallON, '',
+    #                                         os.path.join(fileobj.datobj.wdir, 'data', 'EMG', 'filtered_data' + str(k)),
+    #                                         os.path.join(fileobj.datobj.wdir, 'data', 'EMG',
+    #                                                      'features_split' + str(k)), k)
+
 # Obtain the names and metadata for both groups according to the excel file (see <dataprocess> for mor information)
 trem_details = details[details.type == 1]
 bradkin_details = details[(details.type == 0) | (details.type == 2)]
 
-# Sort data into two categories: a) bradikentic-rigid and b) tremordominant iPS-patients
+# Sort data into two categories: a) bradikintic-rigid and b) tremordominant iPS-patients
 list_type = {}
 tremdom = []
 brakin = []
@@ -54,9 +59,6 @@ for r in listEMGallOFF:
     else:
         tremdom.append(r)
 list_type.update({"brakin": brakin, "tremdom": tremdom})
-
-# listEMGtremOFF = fileobj.get_EMGfilelist_per_subj(cond='OFF', task='rst', subj=list(trem_details.Name))
-# listEMGbrakinOFF = fileobj.get_EMGfilelist_per_subj(cond='OFF', task='rst', subj=list(bradkin_details.Name))
 
 # Load EMG features to memory, according to file-list <listEMGallOFF> (here only 8secs. are used)
 progbar_size = len(listEMGallOFF)
@@ -82,13 +84,13 @@ print()
 print("DONE reading features!")
 
 # Plot routine comparisons between both groups:
-features = ["IAV", "MAV2", "RMS", "VAR"] # features of interest
+features = ["IAV", "MAV2", "RMS", "VAR", "ZC", "SSC"] # features of interest
 column_regex = re.compile("^((" + ")|(".join(features) + "))_[0-9]+")
 feat_br = pds.DataFrame(columns=features)
 feat_td = pds.DataFrame(columns=features)
 
 feat_all = {}
-listEMGtremOFF = fileobj.get_EMGfilelist_per_subj(cond='OFF', task='rst', subj=list(trem_details.Name))
+listEMGtremOFF = fileobj.get_EMGfilelist_per_subj(cond=cond, task=task, subj=list(trem_details.Name))
 for idx, r in enumerate(listEMGtremOFF):
     print("Reading features per subject, reading: ", r)
     data_temp = pds.DataFrame()
@@ -101,11 +103,11 @@ for idx, r in enumerate(listEMGtremOFF):
 feat_tdAllchan = pds.DataFrame.from_dict(feat_all, orient='index')
 
 feat_all = {}
-listEMGtremOFF = fileobj.get_EMGfilelist_per_subj(cond='OFF', task='rst', subj=list(bradkin_details.Name))
-for idx, r in enumerate(listEMGtremOFF):
+listEMGbrakinOFF = fileobj.get_EMGfilelist_per_subj(cond=cond, task=task, subj=list(bradkin_details.Name))
+for idx, r in enumerate(listEMGbrakinOFF):
     print("Reading features per subject, reading: ", r)
     data_temp = pds.DataFrame()
-    for f in listEMGtremOFF[r]:
+    for f in listEMGbrakinOFF[r]:
         filename = os.path.splitext(f)[0]
         columns_input = list(filter(column_regex.match, list(dfs[f])))
         data_temp = pds.concat([data_temp, dfs[f][columns_input]])
@@ -264,7 +266,3 @@ for seg in range(1, 9, 1):
         # Save all data to separate file, which may be used later for plotting purposes
     pickle.dump(output, open(
         os.path.join(fileobj.datobj.wdir, "data", "EMG", "results", "results_tremorclass" + str(seg) + "secs.bin"), "wb"))
-
-## --------------------------------------------------------------------------------------------------------------------
-
-# TODO Third part, estimating different regression between the changes in features and changes in the UPDRS; Besides a linear regression should be displayes as well

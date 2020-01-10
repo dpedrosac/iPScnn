@@ -140,12 +140,12 @@ class DataPipeline:
                 loaded_on = np.stack(loaded_temp, axis=0)
                 detailsON = pds.DataFrame(data=details_temp,
                                           columns=['Name', 'condition', 'task', 'trial', 'age', 'gender',
-                                                   'updrsON', 'updrsOFF', 'updrsDiff', 'ledd'])
+                                                   'updrsOFF', 'updrsON', 'updrsDiff', 'ledd'])
             else:
                 loaded_off = np.stack(loaded_temp, axis=0)
                 detailsOFF = pds.DataFrame(data=details_temp,
                                           columns=['Name', 'condition', 'task', 'trial', 'age', 'gender',
-                                                   'updrsON', 'updrsOFF', 'updrsDiff', 'ledd'])
+                                                   'updrsOFF', 'updrsON', 'updrsDiff', 'ledd'])
 
         if window != False:
             # chop available data into time window pieces thus creating more samples

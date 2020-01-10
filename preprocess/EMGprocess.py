@@ -59,7 +59,7 @@ class EMGfileworks:
 
         return file
 
-    def get_EMGfilelist_all(self, task= ''):
+    def get_EMGfilelist_all(self, task=''):
         """this function returns the different EMG files, that should be extracted and processed later. The reason
                 for this approach instead of loading data strainght into the program is, that this way both k-fold
                 validation and splitting into train/test datasets is easier"""
@@ -113,8 +113,9 @@ class EMGfileworks:
 
         if self.scaling:
             return preprocessing.robust_scale(df.values)
+            # return preprocessing.normalize(df.values)
         else:
-            return preprocessing.normalize(df.values)
+            return df.values
 
     def filter_data_and_extract_features(self, list_files, data_folder, filtered_data_folder, feature_folder, dur):
         """this functions filters data in order to proceed with feature extraction later"""
@@ -143,7 +144,7 @@ class EMGfileworks:
         for file in list_files:
             output_file = os.path.splitext(file)[0] + "_" + str(dur) + 'secs_filtered.csv'
             output_file2 = os.path.splitext(file)[0] + "_" + str(dur) + 'secs_features.pkl'
-            if not (os.path.isfile(os.path.join(filtered_data_folder, output_file)) or
+            if not (os.path.isfile(os.path.join(filtered_data_folder, output_file)) and
                     os.path.isfile(os.path.join(feature_folder, output_file2))):
                 datemg = list()
                 dattemp = self.load_file(os.path.join(data_folder, file))
@@ -152,16 +153,19 @@ class EMGfileworks:
                 emg = pds.DataFrame(np.vstack(datemg), columns=["EMG_1", "EMG_2", "EMG_3", "EMG_4",
                                                                 "EMG_5", "EMG_6", "EMG_7", "EMG_8"])
                 if self.debug:
-                    plt.figure()
-                    plt.plot(emg["EMG_8"])
-                    plt.ylabel('EMG channel \nactivity [in a.u.]')
-                    plt.ylabel('Time [in sec.]')
+                    import scipy.signal as sgn
+                    fig, ax = plt.subplots(2)
+                    ax[0].plot(emg["EMG_8"])
+                    Psd, f = sgn.welch(emg["EMG_8"], 200, nperseg=256)
+                    ax[1].plot(Psd, f)
                     plt.show()
 
                 self.filt.apply_filter(emg)
 
                 if self.debug:
-                    plt.plot(emg["EMG_8"])
+                    ax[0].plot(emg["EMG_8"])
+                    Psd, f = sgn.welch(emg["EMG_8"], 200, nperseg=256)
+                    ax[1].plot(Psd, f)
                     plt.show()
 
                 print('Saving to file: {:s}'.format(output_file))
@@ -267,6 +271,26 @@ class EMGfileworks:
         return dfs_output
 
 
+    def prepare_data_regression(self, dfreg, s, features):
+        metadata = ['output_0']
+
+        dfs_output: Dict[str, pds.DataFrame] = dict()
+        column_regex = re.compile("^((" + ")|(".join(features) + "))_[0-9]+")
+
+        for k, v in s.items():
+            df_temp = pds.DataFrame()
+            columns_input = []
+            for r in v:
+                columns_input = list(filter(column_regex.match, list(dfreg[r])))
+                df_temp = df_temp.append(dfreg[r][columns_input + metadata])
+
+            df_temp.rename({c: "input_{:d}_{:s}".format(i, c) for i, c in enumerate(columns_input)},
+                           axis="columns", inplace=True)
+
+            dfs_output[k] = df_temp
+            dfs_output[k].index = np.arange(0, len(dfs_output[k].index))
+        return dfs_output
+
 class ExtractEMGfeat:
     """functions required to etxract EMG data in order to process it later"""
 
@@ -315,7 +339,7 @@ class ExtractEMGfeat:
 
             details = pds.DataFrame(data=details_temp,
                                     columns=['Name', 'index', 'age', 'gender',
-                                             'updrsON', 'updrsOFF', 'updrsDiff', 'ledd', 'type'])
+                                             'updrsOFF', 'updrsON', 'updrsDiff', 'ledd', 'type'])
         if act == 'save':
             details.to_csv(os.path.join(self.datobj.wdir + "/data/EMG/detailsEMG.csv"), mode='w', header=True)
         elif act == 'return':
