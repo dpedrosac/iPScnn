@@ -66,13 +66,13 @@ class Filter:
         b, a = butter(order, [low, high], btype='band')
         return b, a
 
-    def butter_bandpass_filter(self, data, low_cutoff, high_cutoff, fs, order=5):
+    def butter_bandpass_filter(self, data, low_cutoff, high_cutoff, fs, order=3):
         b, a = self.butter_bandpass(low_cutoff, high_cutoff, fs, order=order)
         y = filtfilt(b, a, data)
         return y
 
-    def pre_process(self, signal, window_t=10, freq=200, low_pass=20, high_pass=90):
-        notch_frequencies = [49.99, 100]
+    def pre_process(self, signal, window_t=10, freq=200, low_pass=10, high_pass=99):
+        notch_frequencies = [49.99, 99.5]
         val = self.multi_notch(signal, window_t * freq, notch_frequencies)
         signal = self.butter_bandpass_filter(signal - val, low_pass, high_pass, freq)
         return signal

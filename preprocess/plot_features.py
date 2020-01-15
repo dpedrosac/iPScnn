@@ -67,7 +67,7 @@ class PlotRoutines:
                         print("please enter either 'dep' or 'indep' for tyoe_test!")
 
                     if pnpar < .05:
-                        # print("U={:.1f}, p = {:.3f}".format(h, pnpar))
+                        print("U={:.1f}, p = {:.3f}".format(h, pnpar))
                         if pnpar < .001:
                             form_pstring = "p < .001"
                         else:
@@ -77,7 +77,7 @@ class PlotRoutines:
                         ax.text(.5, max(dataplot.values.flatten()) * 1.12, form_pstring, ha='center', **style)
                         ax.axhline(y=max(dataplot.values.flatten()) * 1.1, xmin=.35, xmax=.65,
                                    color='k', linewidth=.5)
-                    #print(mtr, ":", pnpar)
+                    print(mtr, ":", pnpar)
 
                 except:
                     continue
@@ -98,8 +98,9 @@ class PlotRoutines:
                 try:
                     mtr = self.MOI[iter]
                     feat_temp = feat2[mtr].values - feat1[mtr].values
-                    updrs_temp = 100 * np.divide(details["updrsON"] - details["updrsOFF"],
-                                                 details["updrsON"])  # details["updrsDiff"]
+
+                    updrs_temp = 100 * np.divide(details["updrsOFF"] - details["updrsON"],
+                                                 details["updrsOFF"])  # details["updrsDiff"]
 
                     mtr = self.MOI[iter]
                     sns.set(style="white", context="paper", font_scale=.84)
@@ -109,7 +110,7 @@ class PlotRoutines:
                     lbl_y = "Change in " + mtr
                     dataplot = pds.DataFrame({lbl_y: feat_temp.transpose(), "UPDRSchange": updrs_temp})
                     value = (details['type'] < 1) | (details['type'] > 1)
-                    dataplot["color"] = np.where(value == True, "#9b59b6", "#3498db")
+                    dataplot["color"] = np.where(value == True, "#561ddf", "#3498db")
                     sns.regplot(data=dataplot, x="UPDRSchange", y=lbl_y, scatter_kws={'facecolors': dataplot['color']},
                                 ci=95, n_boot=5000,
                                 marker="+")
@@ -125,7 +126,7 @@ class PlotRoutines:
                     slope, intercept, r_value, p_value, std_err = stats.linregress(dataplot[lbl_y],
                                                                                    dataplot['UPDRSchange'])
 
-                    # print("for metric:", mtr, ",r-squared:", r_value ** 2, ",p =", p_value)
+                    print("for metric:", mtr, ",r-squared:", r_value ** 2, ",p =", p_value)
 
                 except:
                     continue
