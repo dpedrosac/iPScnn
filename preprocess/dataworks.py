@@ -243,7 +243,7 @@ class Categorize:
         also for multihead models data is splitted into task specific matrices
         TODO there are two conditionals on modeltype necessary. merge?"""
 
-        if modeltype == 'mh':
+        if (modeltype == 'mh') | (modeltype == 'mc'):
             # data preprocessing for multihead model
             datONout = list()
             detailsONout = list()
@@ -282,7 +282,7 @@ class Categorize:
         testON_idx  = np.setdiff1d(np.arange(minONlen) , trainingON_idx )
         testOFF_idx = np.setdiff1d(np.arange(minOFFlen), trainingOFF_idx)
 
-        if modeltype == 'mh':
+        if (modeltype == 'mh') | (modeltype == 'mc'):
             cnt = 0
             smplsONtrain = list()
             smplsONtest = list()
@@ -303,7 +303,7 @@ class Categorize:
     def create_cat(self, X, Y, modeltype):
         """this function establishes the categories for the data, i.e. whether it is an 'ON' or 'OFF' condition and
         concatenates all available recordings into a single matrix"""
-        if modeltype == "mh":
+        if (modeltype == 'mh') | (modeltype == 'mc'):
             cats = np.zeros(X[0].shape[0] + Y[0].shape[0])
             cats[0:X[1].shape[0]] = 1
             cats = to_categorical(cats)

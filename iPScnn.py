@@ -20,11 +20,11 @@ reload(cnn.hyperparameter_scan_cnn)
 # ------------------------------------------------------------------------------------------
 
 # define model type
-modeltype = 'mh' # 'mh' = multihead, 'cnn' = convnet
+modeltype = 'mc' # 'mc' = multichannel, 'mh' = multihead, 'cnn' = convnet
 
 # loads and preprocesses data as needed
-datobj = preprocess.dataworks.DataPipeline('', '', '')
-datobj.generate_subjlist()
+datobj = preprocess.dataworks.DataPipeline('', '', '','')
+datobj.generate_subjlist('')
 
 if getpass.getuser() == "urs":
     with open('/home/urs/sync/projects/autostim/analysis/iPScnn/config.yaml', 'r') as f:
@@ -97,28 +97,33 @@ if tune_params == False:
 
     # TODO: change this part into yaml file in order to store it in a config file
     repeats  = 10
-    n_filter = [150]  # [32, 64, 128]
-    n_kernel = [50]  # [50, 25, 10, 5]
+    n_filter = [256] #[150, 100, 50, 25]  # [32, 64, 128]
+    n_kernel = [50] # [50, 25, 10, 5]
     scores   = list()
     f_scores = list()
     k_scores = list()
+
+    outfile = open('cnn_results', 'w')
 
     for k in n_kernel:
         for f in n_filter:
             for r in range(repeats):
                 # score = cnnobj.evaluate_combined_model(trainX, trainy, testX, testy, f, k)
                 #score = cnnobj.evaluate_model(trainX, trainy, testX, testy, f, k)
-                print(len(trainX))
-                print(trainX[0].shape)
-                score = cnnobj.evaluate_mh_model(trainX, trainy, testX, testy, f, k)
-                #score = cnnobj.evaluate_mc_model(trainX, trainy, testX, testy, f, k)
+                #score = cnnobj.evaluate_mh_model(trainX, trainy, testX, testy, f, k)
+                score = cnnobj.evaluate_mc_model(trainX, trainy, testX, testy, f, k)
                 #score = cnnobj.evaluate_alt_model(trainX, trainy, testX, testy, f, k)
                 #score = cnnobj.evaluate_multihead_model(trainX, trainy, testX, testy, f, k, train_task_ix, test_task_ix)
                 score = score * 100.0
-                print('>F=%d; K=%d; #%d: %.3f' % (f, k, r + 1, score))
+                outstring = '>F=%d; K=%d; #%d: %.3f' % (f, k, r + 1, score)
+                print(outstring)
+                outfile.write(outstring)
+                outfile.write('\n')
             scores.append(score)
         f_scores.append(scores)
     k_scores.append(f_scores)
+
+    outfile.close()
 
 else:
     p = {'lr': (0.5, 5, 10),
