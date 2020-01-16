@@ -20,7 +20,8 @@ reload(cnn.hyperparameter_scan_cnn)
 # ------------------------------------------------------------------------------------------
 
 # define model type
-modeltype = 'mc' # 'mc' = multichannel, 'mh' = multihead, 'cnn' = convnet
+modeltype  = 'mc' # 'mc' = multichannel, 'mh' = multihead, 'cnn' = convnet
+outputtype = 'reg' # 'reg' = regression, 'cat' = categorization
 
 # loads and preprocesses data as needed
 datobj = preprocess.dataworks.DataPipeline('', '', '','')
@@ -68,12 +69,13 @@ print(datON.shape)
 # ------------------------------------------------------------------------------------------
 # start categorising data in order to prepare the cnn model training/estimation
 catobj = preprocess.dataworks.Categorize()
-smplsONtrain, smplsONtest, smplsOFFtrain, smplsOFFtest = catobj.subsample_data(datON, datOFF, detailsON, detailsOFF, modeltype, .8, d[0]["dataworks"]["tasks"])
+smplsONtrain, smplsONtest, smplsOFFtrain, smplsOFFtest, updrsONtrain, updrsONtest, updrsOFFtrain, updrsOFFtest\
+    = catobj.subsample_data(datON, datOFF, detailsON, detailsOFF, modeltype, .8, d[0]["dataworks"]["tasks"])
 
 # TODO permutation for e.g. k-fold crossvalidation could be included here
 
-trainX, trainy = catobj.create_cat(smplsONtrain, smplsOFFtrain, modeltype)
-testX , testy  = catobj.create_cat(smplsONtest , smplsOFFtest , modeltype)
+trainX, trainy = catobj.create_cat(smplsONtrain, smplsOFFtrain, updrsONtrain, updrsOFFtrain, modeltype, outputtype)
+testX , testy  = catobj.create_cat(smplsONtest , smplsOFFtest , updrsONtest , updrsOFFtest , modeltype, outputtype)
 
 if(modeltype=="mc"):
     print(trainX[0].shape)
@@ -111,7 +113,7 @@ if tune_params == False:
                 # score = cnnobj.evaluate_combined_model(trainX, trainy, testX, testy, f, k)
                 #score = cnnobj.evaluate_model(trainX, trainy, testX, testy, f, k)
                 #score = cnnobj.evaluate_mh_model(trainX, trainy, testX, testy, f, k)
-                score = cnnobj.evaluate_mc_model(trainX, trainy, testX, testy, f, k)
+                score = cnnobj.evaluate_mc_model(trainX, trainy, testX, testy, f, k, outputtype)
                 #score = cnnobj.evaluate_alt_model(trainX, trainy, testX, testy, f, k)
                 #score = cnnobj.evaluate_multihead_model(trainX, trainy, testX, testy, f, k, train_task_ix, test_task_ix)
                 score = score * 100.0
