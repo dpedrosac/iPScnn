@@ -275,7 +275,7 @@ class EMGfileworks:
         metadata = ['output_0']
 
         dfs_output: Dict[str, pds.DataFrame] = dict()
-        column_regex = re.compile("^((" + ")|(".join(features) + "))_[0-9]+")
+        column_regex = re.compile("^((" + ")|(".join(features) + "))+")
 
         for k, v in s.items():
             df_temp = pds.DataFrame()
@@ -465,6 +465,18 @@ class EMGpredict:
         elif predictor == "SVM":
             from sklearn.svm import SVC
             predictor_instance = SVC(**predictor_args)
+        elif predictor == "SVR":
+            from sklearn.svm import SVR
+            predictor_instance = SVR(**predictor_args)
+        elif predictor == "LinearRegression":
+            from sklearn.linear_model import LinearRegression
+            predictor_instance = LinearRegression(**predictor_args)
+        elif predictor == "Lasso":
+            from sklearn.linear_model import Lasso
+            predictor_instance = Lasso(**predictor_args)
+        elif predictor == "kNNRegression":
+            from sklearn.neighbors import KNeighborsRegressor
+            predictor_instance = KNeighborsRegressor(**predictor_args)
         else:
             raise ValueError(predictor + ' is not a valid predictor')
 

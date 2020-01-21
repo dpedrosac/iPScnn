@@ -38,34 +38,41 @@ for k in range(8, 9, 1): # loop through all segments in order to read how much r
                                                           'features_split' + str(k)), k)
 
 # Load EMG features to memory, according to file-list <listEMGallOFF> (here only 8secs. are used)
-progressbar_size = len(listEMGallOFF + listEMGallON)
-print('Reading extracted features for all subjects ...')
-dfs: Dict = {}
-for idx, r in enumerate(listEMGallOFF + listEMGallON):
-    j = (idx + 1) / progressbar_size
-    sys.stdout.write('\r')
-    sys.stdout.write("[%-20s] %d%%" % ('=' * int(20 * j), 100 * j))
-    sys.stdout.flush()
-    sleep(0.25)
+dfs_file = os.path.join(os.path.join(fileobj.datobj.wdir, 'data', 'EMG'), "dfs_pickled.pkl")
+if not os.path.isfile(os.path.join(fileobj.datobj.wdir, 'data', 'EMG', dfs_file)):
+    # Load EMG features to memory, according to file-list <listEMGallOFF> (here only 8secs. are used)
+    progressbar_size = len(listEMGallOFF + listEMGallON)
+    print('Reading extracted features for all subjects ...', end='', flush=True)
+    dfs: Dict = {}
+    for idx, r in enumerate(listEMGallOFF + listEMGallON):
+        j = (idx + 1) / progressbar_size
+        sys.stdout.write('\r')
+        sys.stdout.write("[%-20s] %d%%" % ('=' * int(20 * j), 100 * j))
+        sys.stdout.flush()
+        sleep(0.25)
 
-    filename = os.path.splitext(r)[0]
-    infile = open(os.path.join(fileobj.datobj.wdir, 'data', 'EMG', 'features_split8', filename + '_8secs_features.pkl'),
-                  'rb')
-    dfs[r] = pickle.load(infile)
-    infile.close()
-    idx_subj = details.index[details['Name'] == filename[0:11]].tolist()
-    if "OFF" in filename:
-        dfs[r].insert(0, "output_0", 0)
-        dfs[r].insert(1, "UPDRS", list(details["updrsOFF"].iloc[idx_subj])*len(dfs[r]))
-    else:
-        dfs[r].insert(0, "output_0", 1)
-        dfs[r].insert(1, "UPDRS", list(details["updrsON"].iloc[idx_subj])*len(dfs[r]))
+        filename = os.path.splitext(r)[0]
+        infile = open(os.path.join(fileobj.datobj.wdir, 'data', 'EMG', 'features_split8', filename + '_8secs_features.pkl'),
+                      'rb')
+        dfs[r] = pickle.load(infile)
+        infile.close()
+        idx_subj = details.index[details['Name'] == filename[0:11]].tolist()
+        if "OFF" in filename:
+            dfs[r].insert(0, "output_0", 0)
+            dfs[r].insert(1, "UPDRS", list(details["updrsOFF"].iloc[idx_subj])*len(dfs[r]))
+        else:
+            dfs[r].insert(0, "output_0", 1)
+            dfs[r].insert(1, "UPDRS", list(details["updrsON"].iloc[idx_subj])*len(dfs[r]))
 
+    with open(dfs_file, 'wb') as handle:
+        pickle.dump(dfs, handle, protocol=pickle.HIGHEST_PROTOCOL)
+else:
+    with open(dfs_file, 'rb') as handle:
+        dfs = pickle.load(handle)
+print("DONE!")
 print()
-print("DONE reading features!")
 
 # Plot routine comparisons between both groups:
-
 features = ["IAV", "MAV2", "RMS", "WAMP", "MAV", "WL", "ZC", "SSC", "VAR"]
 # Extract the features of interest for both conditions
 column_regex = re.compile("^((" + ")|(".join(features) + "))_[0-9]+")
@@ -144,34 +151,41 @@ for k in COI:
 
 list_temp = fileobj.get_EMGfilelist_per_subj(cond='ON', task=task, subj='')
 print()
-print('Preparing data for regression ...', flush=True)
-dfreg: Dict = {}
+print('Preparing data for regression ...', end='', flush=True)
+dfreg_file = os.path.join(os.path.join(fileobj.datobj.wdir, 'data', 'EMG'), "dfreg_pickled.pkl")
+if not os.path.isfile(os.path.join(fileobj.datobj.wdir, 'data', 'EMG', dfreg_file)):
+    dfreg: Dict = {}
+    progressbar_size = len(listEMGallON)*len(features)
+    iter = 0
 
-listEMGallOFF, listEMGallON = fileobj.get_EMGfilelist_all(task=task)
-progressbar_size = len(listEMGallON)*len(features)
-iter = 0
+    dfreg: Dict = {}
+    for idx, r in enumerate(list_temp):
+        idx_subj = details.index[details["Name"] == r]
 
-dfreg: Dict = {}
-for idx, r in enumerate(list_temp):
-    idx_subj = details.index[details["Name"] == r]
+        for f in list_temp[r]:
+            data_temp = pds.DataFrame(columns=features)
+            for n in features:
+                iter = iter + 1
+                j = iter / progressbar_size
+                sys.stdout.write('\r')
+                sys.stdout.write("[%-20s] %d%%" % ('=' * int(20 * j), 100 * j))
+                sys.stdout.flush()
+                sleep(0.1)
 
-    for f in list_temp[r]:
-        data_temp = pds.DataFrame(columns=features)
-        for n in features:
-            iter = iter + 1
-            j = iter / progressbar_size
-            sys.stdout.write('\r')
-            sys.stdout.write("[%-20s] %d%%" % ('=' * int(20 * j), 100 * j))
-            sys.stdout.flush()
-            sleep(0.1)
+                data_temp[n] = np.mean(dfs[f][cols_sel].values.flatten()) - feat_off[n][idx_subj + 1]
+                data_temp[n].index = np.arange(0, len(data_temp[n].index))
+                updrs_temp = 100 * np.divide(details.iloc[idx_subj]["updrsOFF"] - details.iloc[idx_subj]["updrsON"],
+                                                     details.iloc[idx_subj]["updrsOFF"])  # details["updrsDiff"]
 
-            data_temp[n] = np.mean(dfs[f][cols_sel].values.flatten()) - feat_off[n][idx_subj + 1]
-            data_temp[n].index = np.arange(0, len(data_temp[n].index))
-            updrs_temp = 100 * np.divide(details.iloc[idx_subj]["updrsOFF"] - details.iloc[idx_subj]["updrsON"],
-                                                 details.iloc[idx_subj]["updrsOFF"])  # details["updrsDiff"]
+            data_temp.insert(0, "output_0", value=float(updrs_temp))
+            dfreg[f] = data_temp
 
-        data_temp.insert(0, "output_0", value=float(updrs_temp))
-        dfreg[f] = data_temp
+    with open(dfreg_file, 'wb') as handle:
+        pickle.dump(dfreg, handle, protocol=pickle.HIGHEST_PROTOCOL)
+else:
+    with open(dfreg_file, 'rb') as handle:
+        dfreg = pickle.load(handle)
+print("DONE!")
 print()
 
 # Start "shallow learning" routine for the EMG feature data
@@ -229,7 +243,7 @@ for id_, id_splits in splits_all.items():  # k-fold-validation
         print('\t\tFeature set: {:s} -'.format(feature_set_name), end='', flush=True)
 
         # prepare data, i.e. isolate features of interest according to <features>, rename -> input_XXX and create  index
-        data = fileobj.prepare_data_complete(dfreg, id_splits, features)
+        data = fileobj.prepare_data_complete(dfs, id_splits, features)
 
         # list columns containing only feature data
         regex = re.compile(r'input_[0-9]+_[A-Z]+_[0-9]+')

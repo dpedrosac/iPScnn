@@ -174,24 +174,36 @@ types = {
 
 # Classifiers and its options to be used for the distinct classifiers
 classifiers = {
-    "kNN": {
-        "predictor": "kNN",
-        "args": {"n_neighbors": 5, "weights": "uniform", "algorithm": "auto", "leaf_size": 30, "p": 2,
-                 "metric": "minkowski", "metric_params": None, "n_jobs": None}},
-    "SVM":
-        {"predictor": "SVM",
+    "LR":
+        {"predictor": "LinearRegression",
+         "args": {"fit_intercept": True, "normalize": "False"}},
+
+    "LassoRegression": {
+        "predictor": "Lasso",
+        "args": {"alpha": 1.0, "fit_intercept": True, "max_iter": 10000, "selection": "cyclic"}},
+
+    "SVR_rbf":
+        {"predictor": "SVR",
          "args": {"C": 50.0, "kernel": "rbf", "degree": 3, "gamma": "auto", "coef0": 0.0,
-                  "shrinking": True, "probability": False, "tol": 0.001, "cache_size": 200,
-                  "class_weight": None, "verbose": False, "max_iter": -1, "decision_function_shape": "ovr",
-                  "random_state": None}}
+                  "shrinking": True, "tol": 0.001, "cache_size": 200, "verbose": False}},
+
+    "SVR_poly":
+        {"predictor": "SVR",
+         "args": {"C": 50.0, "kernel": "poly", "degree": 3, "gamma": "auto", "coef0": 0.0,
+                  "shrinking": True, "tol": 0.001, "cache_size": 200, "verbose": False}},
+
+    "kNNRegression": {
+        "predictor": "kNNRegression",
+        "args": {"n_neighbors": 5, "weights": "uniform", "algorithm": "auto", "leaf_size": 30, "p": 2,
+                 "metric": "minkowski", "metric_params": None, "n_jobs": None}}
 }
 
 # Start splitting data in order to perform k-fold cross-validation
 splits_type = fileobj.split_per_id(list_type, n_splits=n_splits, test_size=.2)
 splits_all = {}
 for n in range(int(n_splits)):
-    splits_temp1 = splits_type[0][n]["train"] + splits_type[1][n]["train"]
-    splits_temp2 = splits_type[0][n]["test"] + splits_type[1][n]["test"]
+    splits_temp1 = splits_type[1][n]["train"]
+    splits_temp2 = splits_type[1][n]["test"]
     splits_all.update({n: {"train": splits_temp1, "test": splits_temp2}})
 
 # Start shallow learn classification
@@ -199,7 +211,6 @@ print()
 print('Starting the classifiers')
 
 output: Dict[str, any] = dict()
-output["types"] = types
 output["classifiers"] = classifiers
 output["feature_sets"] = feature_sets
 output["results"]: List[Dict[str, any]] = list()
@@ -211,23 +222,18 @@ for id_, id_splits in splits_all.items():  # k-fold-validation
         print('\t\tFeature set: {:s} -'.format(feature_set_name), end='', flush=True)
 
         # prepare data, i.e. isolate features of interest according to <features>, rename -> input_XXX and create  index
-        data = fileobj.prepare_data_complete(dfreg, id_splits, features)
+        data = fileobj.prepare_data_regression(dfreg, id_splits, features)
 
         # list columns containing only feature data
-        regex = re.compile(r'input_[0-9]+_[A-Z]+_[0-9]+')
+        regex = re.compile(r'input_[0-9]+_[A-Z]+')
         cols = list(filter(regex.search, list(data["train"].columns.values)))
 
-        cols_sel = list()
-        for ch in COI:
-            temp = [s for s in cols if str(ch) in s[-1]]
-            cols_sel = cols_sel + temp
-
         # Extract limited training x and y, only with chosen channel configuration
-        train_x = data["train"][cols_sel]
+        train_x = data["train"][cols]
         train_y = data["train"]["output_0"]
 
         # Extract limited testing x and y, only with chosen channel configuration
-        test_x = data["test"][cols_sel]
+        test_x = data["test"][cols]
         test_y_true = data["test"]["output_0"]
 
         for clf_id, clf_settings in classifiers.items():  # loop through different classifiers
@@ -236,22 +242,22 @@ for id_, id_splits in splits_all.items():  # k-fold-validation
             # Prepare classifier pipeline and fit the classifier to train data
             pipeline = svmobj.prepare_pipeline(train_x, train_y,
                                                predictor=clf_settings["predictor"],
-                                               norm_per_feature=True, #False
+                                               norm_per_feature=False,
                                                **clf_settings["args"])
 
             # Run prediction on test data
             test_y_pred = pipeline.predict(test_x)
+            train_y_pred = pipeline.predict(train_x)
 
-            # Calculate confusion matrix
-            cm = confusion_matrix(test_y_true.values.astype(int), test_y_pred, list(types.keys()))
 
             # save classification results to output structure
             output["results"].append({"id": id_, "clf": clf_id,
                                       "feature_set": feature_set_name,
-                                      "cm": cm, "y_true": test_y_true.values.astype(int),
-                                      "y_pred": test_y_pred})
+                                      "y_true": test_y_true.values.astype(int), "y_pred": test_y_pred,
+                                      "ytrain_true": train_y.values.astype(int), "ytrain_pred": train_y_pred,
+                                      "trainX": train_x, "testX": test_x})
         print()
 
     # Save all data to separate file, which may be used later for plotting purposes
 pickle.dump(output, open(
-    os.path.join(fileobj.datobj.wdir, "data", "EMG", "results", "results_ON-OFF_8secs.bin"), "wb"))
+    os.path.join(fileobj.datobj.wdir, "data", "EMG", "results", "results_shallow_regression.bin"), "wb"))
