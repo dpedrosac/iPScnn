@@ -243,51 +243,59 @@ class Categorize:
         also for multihead models data is splitted into task specific matrices
         TODO there are two conditionals on modeltype necessary. merge?"""
 
-        if modeltype == 'mh':
-            # data preprocessing for multihead model
-            datONout = list()
-            detailsONout = list()
-            datOFFout = list()
+        if (modeltype == 'mh') | (modeltype == 'mc'):
+            # data preprocessing for multihead and multichannel model
+            datONout      = list()
+            detailsONout  = list()
+            datOFFout     = list()
             detailsOFFout = list()
-            cnt = 0
-            outONlen = []
+            outONlen  = []
             outOFFlen = []
+            cnt = 0
             for task in np.unique(detailsON.task):
-                # split data into task specific matrices
-                datONout.append(datON [detailsON ['task'] == task, :, :])
+              # split data into task specific matrices
+                datONout.append(datON  [detailsON ['task'] == task, :, :])
                 datOFFout.append(datOFF[detailsOFF['task'] == task, :, :])
+
                 detailsONout.append( detailsON [detailsON ['task'] == task])
                 detailsOFFout.append(detailsOFF[detailsOFF['task'] == task])
+
                 outONlen.append( datONout [cnt].shape[0])
                 outOFFlen.append(datOFFout[cnt].shape[0])
+
                 cnt = cnt + 1
+
             minOFFlen = min(outOFFlen)
             minONlen  = min(outONlen)
             cnt = 0
             for task in tasks:
                 # shave all task matrices to same length
                 # TODO: this will always delete data of the last subject.
-                #       could be more sensible to randomize data first
+                #       it may be more sensible to randomize data first
                 datONout [cnt] = datONout [cnt][0:minONlen , :, :]
                 datOFFout[cnt] = datOFFout[cnt][0:minOFFlen, :, :]
+
                 detailsONout [cnt] = detailsONout [cnt][0:minONlen]
                 detailsOFFout[cnt] = detailsOFFout[cnt][0:minOFFlen]
+
                 cnt = cnt +1
         else:
             minONlen  = datON.shape [0]
             minOFFlen = datOFF.shape[0]
 
+      # create random indices for splitting data in training/testing subsamples
         trainingON_idx  = np.random.randint(minONlen , size=int(round(minONlen  * ratio)))
         trainingOFF_idx = np.random.randint(minOFFlen, size=int(round(minOFFlen * ratio)))
+
         testON_idx  = np.setdiff1d(np.arange(minONlen) , trainingON_idx )
         testOFF_idx = np.setdiff1d(np.arange(minOFFlen), trainingOFF_idx)
 
-        if modeltype == 'mh':
+        if (modeltype == 'mh') | (modeltype == 'mc'):
             cnt = 0
-            smplsONtrain = list()
-            smplsONtest = list()
+            smplsONtrain  = list()
+            smplsONtest   = list()
             smplsOFFtrain = list()
-            smplsOFFtest = list()
+            smplsOFFtest  = list()
             for task in tasks:
                 smplsONtrain.append( datONout [cnt][trainingON_idx  , :, :])
                 smplsONtest.append(  datONout [cnt][testON_idx      , :, :])
@@ -298,12 +306,17 @@ class Categorize:
             smplsONtrain,  smplsONtest  = datON [trainingON_idx , :, :], datON [testON_idx , :, :]
             smplsOFFtrain, smplsOFFtest = datOFF[trainingOFF_idx, :, :], datOFF[testOFF_idx, :, :]
 
-        return smplsONtrain, smplsONtest, smplsOFFtrain, smplsOFFtest
+        updrsONtrain  = detailsON.updrsON [trainingON_idx]
+        updrsONtest   = detailsON.updrsON [testON_idx]
+        updrsOFFtrain = detailsON.updrsOFF[trainingOFF_idx]
+        updrsOFFtest  = detailsON.updrsOFF[testOFF_idx]
 
-    def create_cat(self, X, Y, modeltype):
+        return smplsONtrain, smplsONtest, smplsOFFtrain, smplsOFFtest, updrsONtrain, updrsONtest, updrsOFFtrain, updrsOFFtest
+
+    def create_cat(self, X, Y, x, y, modeltype, outputtype):
         """this function establishes the categories for the data, i.e. whether it is an 'ON' or 'OFF' condition and
         concatenates all available recordings into a single matrix"""
-        if modeltype == "mh":
+        if (modeltype == 'mh') | (modeltype == 'mc'):
             cats = np.zeros(X[0].shape[0] + Y[0].shape[0])
             cats[0:X[1].shape[0]] = 1
             cats = to_categorical(cats)
@@ -315,5 +328,8 @@ class Categorize:
             cats[0:X.shape[0]] = 1
             cats = to_categorical(cats)
             datAll = np.concatenate([X, Y])
+
+        if outputtype == 'reg':
+            cats = np.concatenate([x, y])
 
         return datAll, cats
