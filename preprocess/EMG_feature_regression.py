@@ -18,8 +18,8 @@ conds = ['OFF', 'ON']               # conditions to test for
 COI = [4,5,8]                       # channels of interest
 task = 'tap'                        # selected task
 n_splits = 10                       # n-fold cross validation
-features = ["IAV", "MAV2", "RMS",   # features used for the different (multiple) regressions
-            "WAMP", "MAV", "WL",
+features = ["IAV", "MAV", "RMS",    # all features used for the different (multiple) regressions
+            "WAMP", "WL",
             "ZC", "SSC", "VAR"]
 
 fileobj = preprocess.EMGprocess.EMGfileworks(task=task, subj='all', scaling=False)
@@ -163,7 +163,8 @@ print()
 feature_sets = {
     "RMS": ["RMS"],
     "Hudgins": ["MAV", "WL", "ZC", "SSC"],
-    "Du": ["IAV", "VAR", "WL", "ZC", "SSC", "WAMP"]
+    "Du": ["IAV", "VAR", "WL", "ZC", "SSC", "WAMP"],
+    "all": ["IAV", "MAV", "VAR", "WL", "ZC", "SSC", "WAMP", "RMS"]
 }
 
 # Subtypes of patients to be discriminated

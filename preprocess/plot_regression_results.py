@@ -81,7 +81,7 @@ dftrain = pds.DataFrame(data={'ytrain_true': data_temp5,
 
 # -------- -------- -------- -------- -------- -------- -------- -------- -------- -------- -------- -------- #
 # Plot the correlation matrix
-df_corrDU = dfcorr['kNNRegression']
+df_corrDU = dfcorr['LR']
 CorrDUall = [df_corrDU[i].corr() for i in range(len(df_corrDU))]
 ftr = [re.sub('input_{:d}_'.format(i), "", c) for i, c in enumerate(df_corrDU[0].columns)]
 
@@ -90,21 +90,20 @@ for n in range(len(CorrDUall)):
     dat_corr[:,:,n] = CorrDUall[n].values
 
 plt.figure(1)
-f, ax = plt.subplots(figsize=(12, 12))
 corr = pds.DataFrame(data=np.mean(dat_corr, axis=2), columns=ftr)
-
+sns.set(style="whitegrid", context="paper", font_scale=1.5, font="Cambria")
 # TO display diagonal matrix instead of full matrix.
 mask = np.zeros_like(corr, dtype=np.bool)
 mask[np.triu_indices_from(mask)] = True
 
 # Generate a custom diverging colormap.
-cmap = sns.diverging_palette(220, 10, as_cmap=True)
+cmap = sns.diverging_palette(220, 20, sep=20, as_cmap=True)
 
 # Draw the heatmap with the mask and correct aspect ratio.
 g = sns.heatmap(corr, mask=mask, cmap=cmap, vmax=1, center=0, annot=True, fmt='.2f', square=True,
-                linewidths=1.5, cbar_kws={"shrink": .5}, xticklabels=ftr, yticklabels=ftr)
+                linewidths=1.2, cbar_kws={"shrink": .5}, xticklabels=ftr, yticklabels=ftr)
 
-plt.title("Correlation HeatMap for all features in the 'DU' set:")
+plt.title("Correlation HeatMap for all features used", fontsize=18)
 # fix for mpl bug that cuts off top/bottom of seaborn viz
 b, t = plt.ylim() # discover the values for bottom and top
 b += 0.5 # Add 0.5 to the bottom
@@ -113,13 +112,16 @@ plt.ylim(b, t) # update the ylim(bottom, top) values
 plt.show() # ta-da!
 
 # -------- -------- -------- -------- -------- -------- -------- -------- -------- -------- -------- -------- #
-plt.figure(6)
-sns.set(style="whitegrid")
+plt.figure(2, dpi=300, figsize=(8,3))
+sns.set(style='whitegrid', rc={'grid.linestyle': 'dashdot', 'grid.linewidth' : .01, 'lines.linewidth' : .2}, font="Cambria")
+sns.set_context(context="paper", font_scale=.8)
 sns.set_palette(sns.color_palette(feature_set_colors))
 sns.despine(offset=10, trim=True)
+dattemp = df2[df2.feature != "all"]
+
 g = sns.boxplot(x="clf", y="MSE",
                 hue="feature",
-                data=df2, orient="v",
+                data=dattemp, orient="v",
                 linewidth=.8, fliersize=2)
 
 for p, artist in enumerate(g.artists):
@@ -132,25 +134,33 @@ for p, artist in enumerate(g.artists):
     g.lines[p*6+3].set_xdata(g.lines[p*6+1].get_xdata())
 
 handles, _ = g.get_legend_handles_labels()
-g.legend(handles, output["feature_sets"].keys())
+g.legend(handles, ["RMS", "Hudgins", "Du"], bbox_to_anchor=(1.03, 0.99))
+g.set_xlabel('')
 
 g.set_ylabel("Root Mean Squared Error")
 labels: Dict = {}
-labels = ["Linear \nregression", "Lasso \nregression", "SVR \n(kernel: Gaussian RBF)", "SVR \n(kernel: polynomial)", "k-nearest neighbor \nregression (kNN)"]
+labels = ["Linear \nregression",
+          "Lasso \nregression",
+          "SVR \n(Gaussian RBF)",
+          "SVR \n(Polynomial)",
+          "k-nearest neighbor \nregression (kNN)"]
 plt.setp(g, xticklabels=labels)
 plt.show()
 
 # -------- -------- -------- -------- -------- -------- -------- -------- -------- -------- -------- -------- #
-plt.figure(2)
-sns.set(style="whitegrid", context="paper", font_scale=1.5)
+plt.figure(3, dpi=300, figsize=(8,3))
+sns.set(style='whitegrid', rc={'grid.linestyle': 'dashdot', 'grid.linewidth' : .01, 'lines.linewidth' : .2}, font="Cambria")
+sns.set_context(context="paper", font_scale=1.5)
 sns.set_palette(sns.color_palette(feature_set_colors))
 sns.despine()
 
 # Remove data from less efficient regression techniques
-dftemp = df[df.clf == 0]
-dftemp = dftemp.append(df[df.clf == "LR"])
-dftemp = dftemp.append(df[df.clf == "LassoRegression"])
-dfreg = df.drop(dftemp.index)
+dftemp = pds.DataFrame()
+dattemp = df[df.feature != "all"]
+dftemp = dftemp.append(dattemp[dattemp.clf == "SVR_poly"])
+dftemp = dftemp.append(dattemp[dattemp.clf == "SVR_rbf"])
+dftemp = dftemp.append(dattemp[dattemp.clf == "kNNRegression"])
+dfreg = dftemp
 
 g = sns.lmplot(data=dfreg, x="y_true", y="y_pred", hue="clf", col="feature",
                markers=["o", "x", "*"], scatter_kws={'alpha':0.4})
@@ -163,11 +173,12 @@ g.set_axis_labels("True changes in\nUPDRS after Levodopa intake", "Predicted cha
 # title
 g._legend.set_title("")
 g._legend._loc = 4
-g._legend.set_bbox_to_anchor([1.02, 0.1])
+g._legend.set_bbox_to_anchor([1.09, 0.1])
+
 # replace labels
 new_labels = ['SVR \n(kernel: Gaussian RBF)', 'SVR \n(kernel: Gaussian Polynomial)', 'k-nearest neighbour \nregression (kNN)']
 for t, l in zip(g._legend.texts, new_labels): t.set_text(l)
-plt.setp(g._legend.get_texts(), fontsize='10')
+plt.setp(g._legend.get_texts(), fontsize='18')
 plt.show()
 
 # -------- -------- -------- -------- -------- -------- -------- -------- -------- -------- -------- -------- #
@@ -184,9 +195,9 @@ sns.set(style="whitegrid", context="paper", font_scale=1.5)
 g = sns.residplot(x="y_true", y="y_pred", data=df_residtest,
                   scatter_kws={'alpha': 0.7}, color=list(feature_set_colors)[2], label='Test data')
 g = sns.residplot(x="ytrain_true", y="ytrain_pred", data=df_residtrain,
-                  scatter_kws={'alpha': 0.25}, color='darkgrey', label='Training data')
+                  scatter_kws={'alpha': 0.25}, color="black", label='Training data')
 g.set_xlabel('k-Nearest Neighbour Regression \nstatistics'); g.set_ylabel('UPDRS change Residual $(y-\hat{y})$');
-plt.legend()
+plt.legend(fontsize=24)
 plt.show()
 # -------- -------- -------- -------- -------- -------- -------- -------- -------- -------- -------- -------- #
 
