@@ -250,7 +250,6 @@ for id_, id_splits in splits_all.items():  # k-fold-validation
             test_y_pred = pipeline.predict(test_x)
             train_y_pred = pipeline.predict(train_x)
 
-
             # save classification results to output structure
             output["results"].append({"id": id_, "clf": clf_id,
                                       "feature_set": feature_set_name,

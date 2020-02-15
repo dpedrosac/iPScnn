@@ -482,6 +482,25 @@ class EMGpredict:
 
         pipe = Pipeline([('scaler', scaler), ('predictor', predictor_instance)])
 
+
+        # Here the GridSearch algorithm needs to be implemented
+        # param_grid
+        # C_range = 10. ** np.arange(-3, 8)
+        # gamma_range = 10. ** np.arange(-5, 4)
+        #
+        # param_grid = {'gamma' : gamma_range, 'C' : C_range})
+
+        # # Parameters are optimized using grid search
+        # grid_search = GridSearchCV(estimator=pipeline,
+        # n_jobs=1,
+        # verbose = 1,
+        # return_train_score=True,
+        # cv=5,
+        # param_grid=param_grid)
+        #
+        # grid_search.fit(X, y, groups)
+
+        #grid_search.fit(train_in, train_out)
         pipe.fit(train_in, train_out)
 
         return pipe
