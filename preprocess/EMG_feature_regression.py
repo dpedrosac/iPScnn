@@ -59,7 +59,8 @@ if not os.path.isfile(os.path.join(fileobj.datobj.wdir, 'data', 'EMG', dfs_file)
             dfs[r].insert(1, "UPDRS", list(details["updrsON"].iloc[idx_subj])*len(dfs[r]))
 
     with open(dfs_file, 'wb') as handle:
-        pickle.dump(dfs, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        #pickle.dump(dfs, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        pickle.dump(dfs, handle, protocol=2)
 else:
     with open(dfs_file, 'rb') as handle:
         dfs = pickle.load(handle)
@@ -189,8 +190,8 @@ classifiers = {
                   "shrinking": True, "tol": 0.001, "cache_size": 200, "verbose": False}},
 
     "SVR_poly":
-        {"predictor": "SVR",
-         "args": {"C": 50.0, "kernel": "poly", "degree": 3, "gamma": "auto", "coef0": 0.0,
+         {"predictor": "SVR",
+          "args": {"C": 50.0, "kernel": "poly", "degree": 3, "gamma": "auto", "coef0": 0.0,
                   "shrinking": True, "tol": 0.001, "cache_size": 200, "verbose": False}},
 
     "kNNRegression": {
@@ -255,9 +256,10 @@ for id_, id_splits in splits_all.items():  # k-fold-validation
                                       "feature_set": feature_set_name,
                                       "y_true": test_y_true.values.astype(int), "y_pred": test_y_pred,
                                       "ytrain_true": train_y.values.astype(int), "ytrain_pred": train_y_pred,
-                                      "trainX": train_x, "testX": test_x})
+                                      "trainX": train_x, "testX": test_x,
+                                      "best_params": pipeline.best_params_})
         print()
 
     # Save all data to separate file, which may be used later for plotting purposes
 pickle.dump(output, open(
-    os.path.join(fileobj.datobj.wdir, "data", "EMG", "results", "results_shallow_regression.bin"), "wb"))
+    os.path.join(fileobj.datobj.wdir, "data", "EMG", "results", "results_shallow_regression.bin"), "wb"),protocol=2)

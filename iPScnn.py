@@ -111,9 +111,9 @@ if tune_params == False:
         for f in n_filter:
             for r in range(repeats):
                 # score = cnnobj.evaluate_combined_model(trainX, trainy, testX, testy, f, k)
-                #score = cnnobj.evaluate_model(trainX, trainy, testX, testy, f, k)
+                score = cnnobj.evaluate_model(trainX, trainy, testX, testy, f, k, outputtype)
                 #score = cnnobj.evaluate_mh_model(trainX, trainy, testX, testy, f, k)
-                score = cnnobj.evaluate_mc_model(trainX, trainy, testX, testy, f, k, outputtype)
+                #score = cnnobj.evaluate_mc_model(trainX, trainy, testX, testy, f, k, outputtype)
                 #score = cnnobj.evaluate_alt_model(trainX, trainy, testX, testy, f, k)
                 #score = cnnobj.evaluate_multihead_model(trainX, trainy, testX, testy, f, k, train_task_ix, test_task_ix)
                 score = score * 100.0

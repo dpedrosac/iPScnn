@@ -18,7 +18,9 @@ from numpy.lib.stride_tricks import as_strided
 import itertools
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-
+from sklearn.metrics import make_scorer
+from sklearn.decomposition import PCA
+from sklearn.model_selection import GridSearchCV
 
 class EMGfileworks:
     """The next lines are a set of functions intended to read filenames and return for further analyses"""
@@ -448,6 +450,11 @@ class EMGpredict:
                          predictor: str, norm_per_feature: bool = False,
                          **predictor_args):
 
+        def rms_loss_func(y_true, y_pred):
+            rms = np.sqrt(np.mean((y_true-y_pred)**2))
+            return rms
+        rms_score = make_scorer(rms_loss_func, greater_is_better=False)
+
         if norm_per_feature:
             scaler = StandardScalerPerFeature()
         else:
@@ -456,54 +463,51 @@ class EMGpredict:
         if predictor == "LDA":
             from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
             predictor_instance = LinearDiscriminantAnalysis(**predictor_args)
+            pipe = Pipeline([('scaler', scaler), ('predictor', predictor_instance)])
+            # gparams not defined, function will exit with error
         elif predictor == "QDA":
             from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
             predictor_instance = QuadraticDiscriminantAnalysis(**predictor_args)
+            pipe = Pipeline([('scaler', scaler), ('predictor', predictor_instance)])
+            # gparams not defined, function will exit with error
         elif predictor == "kNN":
             from sklearn.neighbors import KNeighborsClassifier
             predictor_instance = KNeighborsClassifier(**predictor_args)
+            pipe = Pipeline([('scaler', scaler), ('predictor', predictor_instance)])
+            # gparams not defined, function will exit with error
         elif predictor == "SVM":
             from sklearn.svm import SVC
             predictor_instance = SVC(**predictor_args)
+            pipe = Pipeline([('scaler', scaler), ('predictor', predictor_instance)])
+            gparams = {'predictor__C': np.arange(1, 100, 5)}
         elif predictor == "SVR":
             from sklearn.svm import SVR
             predictor_instance = SVR(**predictor_args)
+            pipe = Pipeline([('scaler', scaler), ('predictor', predictor_instance)])
+            gparams = {'predictor__C': np.arange(1, 100, 5)}
         elif predictor == "LinearRegression":
             from sklearn.linear_model import LinearRegression
             predictor_instance = LinearRegression(**predictor_args)
+            gparams = {'predictor__fit_intercept': [True, False]}
         elif predictor == "Lasso":
             from sklearn.linear_model import Lasso
             predictor_instance = Lasso(**predictor_args)
+            gparams = {'predictor__alpha': np.arange(1, 10, .5)}
         elif predictor == "kNNRegression":
             from sklearn.neighbors import KNeighborsRegressor
             predictor_instance = KNeighborsRegressor(**predictor_args)
+            gparams = {'predictor__n_neighbors': np.arange(1, 5)}
         else:
             raise ValueError(predictor + ' is not a valid predictor')
 
+        #TODO: implement root mean square as optimization function via 'scoring' parameter
+        # see e.g.: https://www.programcreek.com/python/example/89268/sklearn.metrics.make_scorer
+        # https://scikit-learn.org/stable/modules/model_evaluation.html#scoring
+
         pipe = Pipeline([('scaler', scaler), ('predictor', predictor_instance)])
-
-
-        # Here the GridSearch algorithm needs to be implemented
-        # param_grid
-        # C_range = 10. ** np.arange(-3, 8)
-        # gamma_range = 10. ** np.arange(-5, 4)
-        #
-        # param_grid = {'gamma' : gamma_range, 'C' : C_range})
-
-        # # Parameters are optimized using grid search
-        # grid_search = GridSearchCV(estimator=pipeline,
-        # n_jobs=1,
-        # verbose = 1,
-        # return_train_score=True,
-        # cv=5,
-        # param_grid=param_grid)
-        #
-        # grid_search.fit(X, y, groups)
-
-        #grid_search.fit(train_in, train_out)
-        pipe.fit(train_in, train_out)
-
-        return pipe
+        gridsearch = GridSearchCV(pipe, gparams).fit(train_in, train_out)
+        # pipe.fit(train_in, train_out)
+        return gridsearch
 
 
 class StandardScalerPerFeature(StandardScaler):

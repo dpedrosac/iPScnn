@@ -4,7 +4,8 @@
 - dataworks:
     folders:
           urs:
-            wdir:     '/home/urs/sync/projects/autostim'
+            wdir:     '/home/urs/sync/projects/autostim/analysis/iPScnn'
+            #wdir:     '/home/urs/sync/projects/autostim'
             patlist:  '/home/urs/sync/projects/autostim/data/patientenliste_onoff.xlsx'
             datpath:  '/home/urs/sync/projects/autostim/data/csvdata/nopca/'
             emgrawdir:  '/home/urs/sync/projects/autostim/data/csvdata/nopca_raw/'
