@@ -453,7 +453,8 @@ class EMGpredict:
         def rms_loss_func(y_true, y_pred):
             rms = np.sqrt(np.mean((y_true-y_pred)**2))
             return rms
-        rms_score = make_scorer(rms_loss_func, greater_is_better=False)
+        #rms_score = make_scorer(rms_loss_func, greater_is_better=False)
+        rms_score = make_scorer(rms_loss_func, greater_is_better=True)
 
         if norm_per_feature:
             scaler = StandardScalerPerFeature()
@@ -496,16 +497,17 @@ class EMGpredict:
         elif predictor == "kNNRegression":
             from sklearn.neighbors import KNeighborsRegressor
             predictor_instance = KNeighborsRegressor(**predictor_args)
-            gparams = {'predictor__n_neighbors': np.arange(1, 5)}
+            gparams = {'predictor__n_neighbors': np.arange(1, 50)}
         else:
-            raise ValueError(predictor + ' is not a valid predictor')
+            raise valueerror(predictor + ' is not a valid predictor')
 
-        #TODO: implement root mean square as optimization function via 'scoring' parameter
+        # TODO: implement root mean square as optimization function via 'scoring' parameter
         # see e.g.: https://www.programcreek.com/python/example/89268/sklearn.metrics.make_scorer
         # https://scikit-learn.org/stable/modules/model_evaluation.html#scoring
 
         pipe = Pipeline([('scaler', scaler), ('predictor', predictor_instance)])
-        gridsearch = GridSearchCV(pipe, gparams).fit(train_in, train_out)
+        gridsearch = GridSearchCV(pipe, gparams, scoring = rms_score)
+        gridsearch.fit(train_in, train_out)
         # pipe.fit(train_in, train_out)
         return gridsearch
 
