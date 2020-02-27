@@ -1,14 +1,7 @@
 require(ggplot2)
-doanova = FALSE
+source("local-functions.R")
 
-# read pickle file
-read.pickle <- function(fname){
-    require(reticulate)
-    use_python("/usr/bin/python3")
-    pd <- import("pandas")
-    pickle_data <- pd$read_pickle(fname)
-return(pickle_data)
-}
+doanova = FALSE
 
 # define error functions
 mse <- function(t,p){ mean((t-p)^2) }
