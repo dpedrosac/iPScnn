@@ -31,7 +31,20 @@
   traindata = coredata[-val.ix,]
   testdata  = coredata[ val.ix,]
 
+    traindata.du      = traindata[, c("updrs", lpar$shallow$emg.keptfeatures$du)]
+    testdata.du       = testdata [, c("updrs", lpar$shallow$emg.keptfeatures$du)]
+    traindata.rms     = traindata[, c("updrs", lpar$shallow$emg.keptfeatures$rms)]
+    testdata.rms      = testdata [, c("updrs", lpar$shallow$emg.keptfeatures$rms)]
+    traindata.hudgins = traindata[, c("updrs", lpar$shallow$emg.keptfeatures$hudgins)]
+    testdata.hudgins  = testdata [, c("updrs", lpar$shallow$emg.keptfeatures$hudgins)]
+
   ctrl = trainControl(method = "repeatedcv", number = 10, repeats = 10)
+
+     ## treebag <- bag(bbbDescr, logBBB, B = 10,
+     ##                bagControl = bagControl(fit = ctreeBag$fit,
+     ##                                        predict = ctreeBag$pred,
+     ##                                        aggregate = ctreeBag$aggregate))
+
                                         #
 # see https://topepo.github.io/caret/available-models.html
 # for a list of models
@@ -43,17 +56,17 @@ grid = list(
 #   ,brnn    = NULL # package not available
    ## ,bridge  = NULL
    ## ,blackboost = NULL
-# ,kknn = NULL
+ ,knn  = expand.grid(.k = seq(1,20,1))
    ## ,svmPoly = NULL
    ## ,svmRadial = NULL
    ##,M5 = NULL # requires JAVA
 #    ,mlp = NULL #works
 #    ,mlpML = NULL
 #   ,neuralnet = NULL
-   ,rf = NULL
+#   ,rf = expand.grid(.mtry = seq(1,50,5))
 )
 
-sh.driver <- function(method)
+sh.driver <- function(method, traindata, testdata)
 {
   model = train(updrs~.,traindata, method = method, tuneGrid = grid[[method]], trControl=ctrl)
   pred = predict(model, testdata)
@@ -65,7 +78,10 @@ sh.driver <- function(method)
   return(out)
 }
 
-out = lapply(names(grid), sh.driver)
+out.all      = lapply(names(grid), sh.driver, traindata        , testdata   )
+out.du       = lapply(names(grid), sh.driver, traindata.du     , testdata.du)
+out.rms      = lapply(names(grid), sh.driver, traindata.rms    , testdata.rms)
+out.hudgins  = lapply(names(grid), sh.driver, traindata.hudgins, testdata.hudgins)
 
 ## # (9) print results to console
 
