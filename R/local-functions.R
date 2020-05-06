@@ -4,6 +4,10 @@ local.parameters <- function()
 {
 lp = list()
 
+lp$metadatafile  = "../../../data/patientenliste_onoff.xlsx"
+lp$updrsdatafile = "updrsdata.csv"
+#lp$updrsdatafile = "../../../data/updrsdata.csv"
+
 # parameters for shallow learning algorithms
 lp$shallow = list()
 lp$shallow$tvsplit              = .1 #training/validation split
@@ -14,7 +18,8 @@ lp$shallow$emg.channels         = c(4, 5, 8)
 lp$shallow$emg.task             = "tap"
 lp$shallow$emg.nfolds           = 10
 lp$shallow$emg.datadir          = "../data/EMG"
-lp$shallow$emg.storagefile      = "../data/EMG/emgshallowfeaturedata.csv" 
+#lp$shallow$emg.storagefile      = "../data/EMG/emgshallowfeaturedata.csv"
+lp$shallow$emg.storagefile      = "emgshallowfeaturedata.csv"
 lp$shallow$emg.featurenames     = c("all", "rms", "hudgins", "du")
 lp$shallow$emg.features.all     = c( "IAV" , "MAV", "RMS"
                                    , "WAMP", "WL" , "ZC"
@@ -77,9 +82,11 @@ shallow.emg.get.pickle <- function(fname, lpar, details)
     dfm$cond     = filestrings[[1]][5]
     dfm$trial    = as.numeric(gsub("trial", "", filestrings[[1]][7]))
     if( all(dfm$cond == "OFF") ){
-      dfm$updrs = details$updrsOFF[ details$Name == dfm$subid[1]]
+      dfm$updrs = details$Gesamt.OFF[  details$Pseudonym == dfm$subid[1] 
+                                     & details$Bedingung == "OFF"]
     }else{
-      dfm$updrs = details$updrsON[  details$Name == dfm$subid[1]]
+      dfm$updrs = details$Gesamt.ON [  details$Pseudonym == dfm$subid[1]
+                                     & details$Bedingung == "ON"]
     }
 return(dfm)
 }
@@ -95,8 +102,62 @@ read.data <- function()
     fnames = dir(ddir, paste("*", lpar$shallow$emg.task, "*", sep="")
                , full.names = TRUE)
 
-    details = read.csv(lpar$shallow$detailsfile, header = TRUE)
+   # read in details file with updrs data, subids, inclusion info
+    #old: details = read.csv(lpar$shallow$detailsfile, header = TRUE)
+    details = read.csv(lpar$updrsdatafile)
+
+   # remove not included subjects
+    details = details[details$Einschluss == 1,]
+
+  # filter files, remove those for which no detail info exists
+    fnames = fnames[do.call(c, sapply(unique(details$Pseudonym), grep, fnames))]
+    
+  # read in pickle data, process and concatenate   
     dfout = do.call(rbind, lapply(fnames, shallow.emg.get.pickle, lpar, details))
     write.csv(dfout, lpar$shallow$emg.storagefile)
+
 return(dfout)
+}
+
+calc.td_pigd <- function(d)
+{
+# calculate tremor dominance and postural instability gait disorder
+# types according to Stebbins et al. 2013 (DOI: 10.1002/mds.25383)
+
+tremor = d$MDS.UPDRS.2.10
+       + d$Haltetremor.Rechts
+       + d$Haltetremor.Links
+       + d$Bewegungstremor.Rechts
+       + d$Bewegungstremor.Links
+       + d$Amplitude.ROE
+       + d$Amplitude.LOE
+       + d$Amplitude.RUE
+       + d$Amplitude.LUE
+       + d$Amplitude.Kiefer
+       + d$Konstanz
+    
+
+pigd   = d$MDS.UPDRS.2.12
+       + d$MDS.UPDRS.2.13
+       + d$Gehen
+       + d$Blockaden
+       + d$Posturale.Stabilit
+    
+
+ratio = (tremor / 11) / (pigd / 5)
+
+group = rep(NA, nrow(d))
+group[ratio > .9 & ratio < 1.15          ] = "indeterminate"
+group[ratio >= 1.15                      ] = "td"
+group[ratio <= .9                        ] = "pigd"    
+group[sign(tremor == 1) & pigd       == 0] = "td" 
+group[     tremor == 0  & sign(pigd) == 1] = "pigd" 
+group[     tremor == 0  & pigd       == 0] = "indeterminate"
+
+out = list(tremor = tremor
+          , pigd  = pigd
+          , ratio = ratio
+          , group = group
+          , subid = d$Pseudonym)
+return(out)    
 }

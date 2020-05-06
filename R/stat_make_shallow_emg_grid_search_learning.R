@@ -1,17 +1,68 @@
+# localized version of shallow emg learning which is intended to run
+# remotely. Therefore all necessary files need to be in the current
+# directory
+
+# prerequisites:
+# 1. download patientenlist_onoff.xlsx, save UPDRS sheet as updrsdata.csv
+#    to the working directory. Beforehand:
+#    - Name ON/OFF column "Bedingung"
+#    - complete Pseudonym column with subids (which are missing in every 2nd)
+#    - manually delete double rows (1 data of subject is doubled)
+#    - replace "x" with NA
+# 2. preprocess data using the read.data() function from local-functions.R
+#    which reads in pickle data files containing the EMG features and writes
+#    them to a .csv file 
+
+
+# local constants
+  dryrun = FALSE # calculate not model, just output sample statistics (debug)
+  debug  = FALSE  # stop after model generation for inspection
+
 # load R libraries
   require(caret)
+  require(doParallel)
 
 # load custom libraries and local parameters/constants
   source("local-functions.R")
-  #source("./emg-shallow/util_shallow_emg_regression_driver.R")
-  lpar          = local.parameters()
-  resultsfiles  = list(R   = "./results/shallow_emg_grid_search_learning.RData"
-                      ,txt = "./results/shallow_emg_grid_search_learning.txt")
+  lpar = local.parameters()
+
+# init parallel processing
+  registerDoParallel()
+
+# define subgroups (tremor dominant / postural instability/gait diffculty
+# updrsdata.csv is a sheet saved manually from patientenliste_onoff.xlsx
+# redefine new group pigd+intermediate
+  updrsdata = read.csv(lpar$updrsdatafile)
+  subgroups = calc.td_pigd(updrsdata[updrsdata$Bedingung=="OFF",])
+  subgroups$cgroup = subgroups$group
+  subgroups$cgroup[ subgroups$cgroup == "pigd"
+                  | subgroups$cgroup == "indeterminate"] = "pigd"
 
 # load data
-  alldata       = read.csv(lpar$shallow$emg.storagefile, header=TRUE)
-  alldata$updrs = as.numeric(alldata$updrs)
+  sampledata       = read.csv(lpar$shallow$emg.storagefile, header=TRUE)
+  sampledata$updrs = as.numeric(sampledata$updrs)
 
+for(subgroup in c("td", "pigd"))
+{
+  outfileroot = "emg_shallow_learning"
+  if(subgroup == "all")
+  {
+    alldata = sampledata
+    outfile = paste(outfileroot,"all",sep="_")
+  } else {    
+    alldata = sampledata[sampledata$subid %in% subgroups$subid[subgroups$cgroup == subgroup],]
+    outfile = paste(outfileroot,subgroup,sep="_")
+  }
+
+cat(paste("Starting analysis for subgroup",subgroup))
+cat(". Output is diverted to file\n\n")  
+  
+  
+if(!debug) sink(file = paste(outfile,".txt",sep=""), split = TRUE)
+
+cat(paste("Processing ", length(unique(alldata$subid)), "subjects"))
+cat("\n\n")
+     
 # generate random vectors for splitting in training and test set
 # for all the possible time window values.
 # The first part is a elaborate way for getting some constants to make this
@@ -29,7 +80,7 @@
    maxsecs = max(alldata$secs)
    alldata = aggregate(.~ secs + subid + cond + trial, data = alldata, mean)
 
- # generate data sets aggregated over 1,2 ... all seconds
+ # generate data sets aggregated over 1,2 ... all seconds for all subgroups
    aggfun <- function(sec)
    {
      nuseabletimepoints = floor(max(alldata$secs)/sec)*sec
@@ -39,6 +90,7 @@
      return(outdata)
    }
    aggdata = lapply(unique(alldata$secs), aggfun)
+
 
  # generate the random sequences corresponding to all data sets and
  # to the "same" and "max" methods
@@ -72,8 +124,6 @@
                      , number  = lpar$shallow$emg.nfolds
                      , repeats = 10)
 
-
-
 # define shallow learning methods used and the parameters for
 # grid search
 # see https://topepo.github.io/caret/available-models.html
@@ -88,7 +138,7 @@ grid = list(
    ## ,blackboost = NULL
    #  ,knn  = expand.grid(.k = seq(1,20,1))
   ,knn = NULL
-   ## ,svmPoly = NULL
+  ,svmPoly = NULL
    ## ,svmRadial = NULL
    ## ,M5 = NULL # requires JAVA
    #  ,mlp = NULL #works
@@ -115,7 +165,8 @@ sh.driver <- function(factors)
   coredata = subset(coredata
                    ,select = c("updrs"
                               ,unlist(lpar$shallow$emg.keptfeatures[featureset])))
-    
+
+  cat("\n\n")  
   cat(paste("Now processing model",cnt,"of",nmodels))
   cat(paste(" using", datalength, featureset, method, sec,"\n"))
     
@@ -123,25 +174,40 @@ sh.driver <- function(factors)
  # and by sec in this step as well)
   traindata = coredata[ix.list[[datalength]][[sec]]$train,]
   testdata  = coredata[ix.list[[datalength]][[sec]]$test ,]
-    
- # train model
-  model = train( updrs ~ .
-               , traindata
-               , method    = method
-               , tuneGrid  = grid[[method]]
-               , trControl = ctrl)
 
- # make predictions, calculate and organise output in list
-  pred = predict(model, testdata)
+ # prepare output list
   out = list( method     = method
             , datalength = datalength
             , featureset = featureset
             , seconds    = sec
-          #  , model      = model  # saving this makes the output massive (>1GB)
-            , cor  =  cor(testdata$updrs, pred)
-            , rmse = rmse(testdata$updrs, pred)
+            , ntraindata = nrow(traindata)
+            , ntestdata  = nrow(testdata)
             )
-   
+    
+ if(!dryrun) # if in dryrun we don't train the model but only output sample 
+ {           # statistics for debugging
+   # train model
+    model = train( updrs ~ .
+                 , traindata
+                 , method    = method
+                 , tuneGrid  = grid[[method]]
+                 , trControl = ctrl)
+    print(model)
+
+   # make predictions, calculate and organise output in list
+    pred = predict(model, testdata)
+    correl  =  cor.test(testdata$updrs, pred)
+
+   # append model output and predictions to output list
+    #out$model = model  # saving this makes the output massive (>1GB)
+    out$cor   = correl$estimate
+    out$corll = correl$conf.int[1]
+    out$corul = correl$conf.int[2]
+    out$rmse  = rmse(testdata$updrs, pred)
+  
+    if(debug) browser()
+  } # end of dryrun conditional
+
   return(out)
 }
 
@@ -149,33 +215,27 @@ sh.driver <- function(factors)
   datalength  = c("max", "same")
   featuresets = c("all", "du", "rms", "hudgins")
   methods     = names(grid)
-#  secs        = as.character(c(1:maxsecs))
+  # secs        = as.character(c(1:maxsecs))
   secs = as.character(c(1:7))
   allfactors  = as.matrix(expand.grid(datalength, featuresets, methods, secs))
   allfactors  = cbind(allfactors, as.character(c(1:nrow(allfactors))))
   nmodels     = nrow(allfactors)
 
 # apply shallow learning driver function across combination matrix rows  
- out = apply(allfactors, 1, sh.driver)
+  out = apply(allfactors, 1, sh.driver)
 
-# do a loop instead as apply hangs up...
+# do a loop instead if apply hangs up...
 # out = list()
 # for( i in c(1:nrow(allfactors)))
 # {
 #     out[[i]] = sh.driver(allfactors[i,])
 # }
 
-# save results
-save("out", file = resultsfiles$R)
+# stop sinking model summaries to txt file, save results
+  if(!debug) sink(file = NULL)
 
-stat = list()
-for( i in c(1:length(out)))
-{
-    stat$method    [i] = out[[i]]$method    [[1]]
-    stat$datalength[i] = out[[i]]$datalength[[1]] 
-    stat$featureset[i] = out[[i]]$featureset[[1]]
-    stat$seconds   [i] = out[[i]]$seconds   [[1]]
-    stat$cor       [i] = out[[i]]$cor       [[1]]
-    stat$rmse      [i] = out[[i]]$rmse      [[1]]    
-}
-  
+# convert list output to data frame, and write data to file
+  if(!debug) stat = do.call(rbind.data.frame, out) 
+  if(!debug) write.csv(stat, paste(outfile,".csv",sep=""))
+
+} # end of subgroup loop

@@ -1,0 +1,57 @@
+Processing  39 subjects
+
+
+
+Now processing model 1 of 14 using max rms ranger 1 
+note: only 2 unique complexity parameters in default grid. Truncating the grid to 2 .
+
+Starting analysis for subgroup all. Output is diverted to file
+
+Processing  39 subjects
+
+
+
+Now processing model 1 of 14 using max rms ranger 1 
+note: only 2 unique complexity parameters in default grid. Truncating the grid to 2 .
+
+Random Forest 
+
+7636 samples
+   3 predictors
+
+No pre-processing
+Resampling: Cross-Validated (10 fold, repeated 10 times) 
+Summary of sample sizes: 6872, 6871, 6872, 6871, 6874, 6873, ... 
+Resampling results across tuning parameters:
+
+  mtry  splitrule   RMSE      Rsquared   MAE     
+  2     variance    17.15108  0.4126803  11.79182
+  2     extratrees  17.01916  0.4246128  12.23324
+  3     variance    17.24631  0.4075777  11.75234
+  3     extratrees  16.98173  0.4249516  12.07296
+
+Tuning parameter 'min.node.size' was held constant at a value of 5
+RMSE was used to select the optimal model using the smallest value.
+The final values used for the model were mtry = 3, splitrule = extratrees
+ and min.node.size = 5.
+Called from: FUN(newX[, i], ...)
+Random Forest 
+
+7636 samples
+   3 predictors
+
+No pre-processing
+Resampling: Cross-Validated (10 fold, repeated 10 times) 
+Summary of sample sizes: 6872, 6871, 6872, 6871, 6874, 6873, ... 
+Resampling results across tuning parameters:
+
+  mtry  splitrule   RMSE      Rsquared   MAE     
+  2     variance    17.15108  0.4126803  11.79182
+  2     extratrees  17.01916  0.4246128  12.23324
+  3     variance    17.24631  0.4075777  11.75234
+  3     extratrees  16.98173  0.4249516  12.07296
+
+Tuning parameter 'min.node.size' was held constant at a value of 5
+RMSE was used to select the optimal model using the smallest value.
+The final values used for the model were mtry = 3, splitrule = extratrees
+ and min.node.size = 5.
