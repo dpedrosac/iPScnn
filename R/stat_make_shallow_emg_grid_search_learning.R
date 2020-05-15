@@ -13,10 +13,14 @@
 #    which reads in pickle data files containing the EMG features and writes
 #    them to a .csv file 
 
-
+# get starttime for performance check
+  start_time = Sys.time()
+  
 # local constants
-  dryrun = FALSE # calculate not model, just output sample statistics (debug)
-  debug  = FALSE  # stop after model generation for inspection
+  dryrun    = FALSE # calculate no model, just output sample statistics (debug)
+  debug     = FALSE  # stop after model generation for inspection
+  hostnames = c("horst","udo") # hosts for cluster computing 
+                               # all hosts need "urs" as a user
 
 # load R libraries
   require(caret)
@@ -27,7 +31,9 @@
   lpar = local.parameters()
 
 # init parallel processing
-  registerDoParallel()
+  workers <- find_workers(hostnames)
+  cl <- makeCluster(workers)
+  registerDoParallel(cl) # old method for one machine
 
 # define subgroups (tremor dominant / postural instability/gait diffculty
 # updrsdata.csv is a sheet saved manually from patientenliste_onoff.xlsx
@@ -43,6 +49,7 @@
   sampledata$updrs = as.numeric(sampledata$updrs)
 
 for(subgroup in c("td", "pigd"))
+#for(subgroup in "all")
 {
   outfileroot = "emg_shallow_learning"
   if(subgroup == "all")
@@ -239,3 +246,7 @@ sh.driver <- function(factors)
   if(!debug) write.csv(stat, paste(outfile,".csv",sep=""))
 
 } # end of subgroup loop
+
+# get end time, print message
+  end_time = Sys.time()
+  print(end_time - start_time)

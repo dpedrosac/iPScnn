@@ -1,7 +1,7 @@
 #fname = "emg_shallow_learning_all.csv"
 #fname = "emg_shallow_learning_pigd.csv"
-#fname = "emg_shallow_learning_td.csv"
- fname = "rob_emg_shallow_learning_all.csv"
+fname = "emg_shallow_learning_td.csv"
+# fname = "rob_emg_shallow_learning_all.csv"
 
 require(ggplot2)
 stat = read.csv(fname)
@@ -29,7 +29,7 @@ p1 + theme(panel.spacing.x=unit(c(1,1,1,5), "lines"))
 stat$dv = stat$rmse
 p2 = plotfun("rmse")
 
-jpeg(file=paste(fname,".jpeg",sep=""),1600,900)
+jpeg(file=paste(fname,"a.jpeg",sep=""),1600,900)
 print(p1)
 dev.off()
 

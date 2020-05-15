@@ -50,6 +50,17 @@ lp$shallow$emg.keptfeatures = list(
 return(lp)    
 }
 
+# find workers (cores) on all nodes of a computing cluster
+# i.e. detect number of cores on all nodes
+find_workers <- function(nodes) {
+  nodes <- unique(nodes)
+  cl <- makeCluster(nodes)
+  on.exit(stopCluster(cl))
+
+  ns <- clusterCall(cl, fun = detectCores)
+  rep(nodes, times = ns)
+}
+
 # define error functions
 rmse <- function(true, predicted)
 {
@@ -92,8 +103,11 @@ return(dfm)
 }
 
 
-read.data <- function()
+read.data <- function(verbose = FALSE)
 {
+    if(verbose) start_time <- Sys.time()
+    require(doParallel)
+    registerDoParallel()
     lpar = local.parameters()
     ddir = paste( lpar$shallow$emg.datadir
                 , "/features_split"
@@ -113,9 +127,12 @@ read.data <- function()
     fnames = fnames[do.call(c, sapply(unique(details$Pseudonym), grep, fnames))]
     
   # read in pickle data, process and concatenate   
-    dfout = do.call(rbind, lapply(fnames, shallow.emg.get.pickle, lpar, details))
+    dfout = do.call(rbind, mclapply(fnames, shallow.emg.get.pickle, lpar, details))
     write.csv(dfout, lpar$shallow$emg.storagefile)
 
+  # output running time if requested  
+    if(verbose) print( Sys.time() - start_time)
+    
 return(dfout)
 }
 
